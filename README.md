@@ -9,25 +9,17 @@
 
 ## 🎯 What is The Remedy?
 
-The Remedy Toolkit is a **Unity framework** designed to replace Unity’s slow and complex solutions with a **performance-first, node-based scripting system**. Acting as a true **visual scripting alternative**, it eliminates performance bottlenecks, removes tight coupling, and simplifies workflows into a **single, scalable Unity architecture toolkit**.
+The Remedy Toolkit provides modular systems commonly rebuilt in Unity
+projects so developers can focus on gameplay instead of engineering
+scaffolding.
 
-Built from the ground up with SOLID principles, the Remedy Toolkit provides developers with the reliability, performance, and ease-of-use that Unity projects of all sizes need.
+Core systems include:
 
-### The Problem
-- **Unity Visual Scripting**: 15x slower performance overhead
-- **Existing Frameworks**: Tight coupling makes customization a nightmare  
-- **Workflow Chaos**: Many tools and frameworks as well as ScriptableObject architectures require jumping between inspectors and managing hundreds of references
-- **Scale Issues**: While using traditional ScriptableEvent workflows the mental complexity between event connections grows exponentially for sending and recieving (20² = 400 mental variables to track)
-
-### The Solution, The Remedy Toolkit + Schematics
-✅ **15x Performance Improvement** over Unity's Visual Scripting due to proper caching, and zero reflection or boxing
-
-✅ **Zero Coupling** - Plug and play any component without breaking existing systems, all gameplay features can be remixed or completely removed without affecting any other system
-
-✅ **One-Window Workflow** - Build entire gameplay systems without context switching  
-
-✅ **SOLID Architecture** - Enforced design principles that scale beautifully  
-
+• Signal/event architecture
+• Object pooling
+• Asset-driven gameplay graphs
+• Dependency and reference utilities
+• Editor tooling for system wiring
 ---
 
 ## 🎮 Powered by Remedy Toolkit
