@@ -1,19 +1,13 @@
 # The Remedy Toolkit
 *Build your game, not your infrastructure*
 
-*Production-ready gameplay systems with near-zero runtime overhead.*
+*Production-ready gameplay architecture with near-zero runtime overhead..*
 
 
 [![Unity Version](https://img.shields.io/badge/Unity-2022%2B-blue.svg)](https://unity3d.com/get-unity/download)
 [![Unity Version](https://img.shields.io/badge/Unity-6000%2B-blue.svg)](https://unity3d.com/get-unity/download)
 
 ## 🎯 What is The Remedy?
-
-The Remedy Toolkit provides modular systems commonly rebuilt in Unity
-projects so developers can focus on gameplay instead of engineering
-scaffolding.
-
-Core systems include:
 
 * Zero-allocation signal/event architecture  
   → See Signal Architecture & Benchmarks
