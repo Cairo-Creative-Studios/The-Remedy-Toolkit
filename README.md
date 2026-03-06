@@ -15,11 +15,12 @@ scaffolding.
 
 Core systems include:
 
-• Signal/event architecture
-• Object pooling
-• Asset-driven gameplay graphs
-• Dependency and reference utilities
-• Editor tooling for system wiring
+* Signal/event architecture
+* Object pooling
+* Asset-driven gameplay graphs
+* Dependency and reference utilities
+* Editor tooling for system wiring
+
 ---
 
 ## 🎮 Powered by Remedy Toolkit
