@@ -1,7 +1,7 @@
 # The Remedy Toolkit
 *Build your game, not your infrastructure*
 
-*Production-ready gameplay architecture with near-zero runtime overhead..*
+*A modular gameplay architecture framework for Unity that automates core infrastructure with minimal runtime overhead and can be integrated into any Unity project.*
 
 
 [![Unity Version](https://img.shields.io/badge/Unity-2022%2B-blue.svg)](https://unity3d.com/get-unity/download)
@@ -9,20 +9,44 @@
 
 ## 🎯 What is The Remedy?
 
-* Zero-allocation signal/event architecture  
+* Production-ready gameplay modules with reusable system implementations and extensible architecture    
+  → Pooling  
+  → Input  
+  → Networking  
+  → Character controllers  
+  → Weapons
+  
+* Editor-first workflow with instant feedback   
+  → See Tooling Overview
+
+* Automated dependency injection with zero manual wiring  
+  → See Automation Breakdown
+  
+* Native-performance asset-driven gameplay graphs    
+  → See Graph Runtime & Performance
+  
+* Zero-allocation signal/event architecture   
   → See Signal Architecture & Benchmarks
 
-* Native-performance asset-driven gameplay graphs  
-  → See Graph Runtime & Performance
-
-* Production-ready gameplay infrastructure  
-  → Pooling, input, networking, character controllers, weapons
-
-* Reflection-free hot paths  
+* Reflection-free hot paths    
   → See Runtime Architecture
+  
+## Architecture Philosophy  
+The Remedy centralizes common gameplay infrastructure patterns into a unified architecture layer while preserving project flexibility and modular adoption.
 
-* Editor-first workflow with instant feedback  
-  → See Tooling Overview
+### Why The Remedy?
+• Reduces boilerplate infrastructure setup  
+• Avoids heavy global frameworks  
+• Focuses on performance-oriented gameplay systems  
+
+## Adoption Model  
+The Remedy can be adopted incrementally:
+
+• Use signals independently  
+• Integrate graphs without replacing your systems  
+• Enable infrastructure modules as needed  
+
+No forced global architecture.
 
 ---
 
