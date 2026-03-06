@@ -5,7 +5,7 @@
 
 
 [![Unity Version](https://img.shields.io/badge/Unity-2022.3%2B-blue.svg)](https://unity3d.com/get-unity/download)
-[![Performance](https://img.shields.io/badge/Performance-15x%20Faster-brightgreen.svg)](#performance)
+[![Unity Version](https://img.shields.io/badge/Unity-6000.1%2B-blue.svg)](https://unity3d.com/get-unity/download)
 
 ## 🎯 What is The Remedy?
 
