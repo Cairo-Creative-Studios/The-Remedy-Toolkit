@@ -1,7 +1,7 @@
 # The Remedy Toolkit
 *Build your game, not your infrastructure*
 
-*Pooling, signals, asset-driven graphs, zero-cost runtime, all of it exists so the developer doesn't have to think about infrastructure. They just build.*
+*Production-ready gameplay systems with near-zero runtime overhead.*
 
 
 [![Unity Version](https://img.shields.io/badge/Unity-2022%2B-blue.svg)](https://unity3d.com/get-unity/download)
@@ -15,11 +15,20 @@ scaffolding.
 
 Core systems include:
 
-* Signal/event architecture
-* Object pooling
-* Asset-driven gameplay graphs
-* Dependency and reference utilities
-* Editor tooling for system wiring
+* Zero-allocation signal/event architecture  
+  → See Signal Architecture & Benchmarks
+
+* Native-performance asset-driven gameplay graphs  
+  → See Graph Runtime & Performance
+
+* Production-ready gameplay infrastructure  
+  → Pooling, input, networking, character controllers, weapons
+
+* Reflection-free hot paths  
+  → See Runtime Architecture
+
+* Editor-first workflow with instant feedback  
+  → See Tooling Overview
 
 ---
 
