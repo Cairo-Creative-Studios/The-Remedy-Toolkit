@@ -1,14 +1,12 @@
-﻿using UnityEngine;
-using BlueGraph;
-using Cysharp.Threading.Tasks;
+﻿using BlueGraph;
 using System;
-using System.Collections.Generic;
 using Remedy.Schematics.Utils;
+using UnityEngine;
 
 namespace Remedy.Schematics
 {
     [Serializable]
-    [Output("▶", typeof(ActionPort), Multiple = true)]
+    [Output("▶", typeof(ActionPort), enableCasting: false, Multiple = true)]
     public class SchematicEventNode : SchematicGraphNode
     {
         protected bool _blocked = false;
@@ -19,25 +17,25 @@ namespace Remedy.Schematics
             return null;
         }
 
-        public void Trigger(params Union[] arguments)
+        public void Trigger(GameObject instance, params Union[] arguments)
         {
             int i = 0;
-            foreach(var kvp in _cachedOutputNames)
+            foreach(var kvp in _cachedOutputsByName)
             {
-                _cachedOuputsByName[kvp] = arguments[i];
-
+                _cachedOutputsByName[kvp.Key] = arguments[i];
                 i++;
             }
 
-            OnTrigger();
-            ProcessChildren();
+            OnTrigger(instance);
+
+            if(!_blocked)
+                ProcessChildren(instance);
         }
 
-        protected virtual void OnTrigger()
-        {
-        }
+        protected virtual void OnTrigger(GameObject instance, params Union[] arguments)
+        { }
 
-        public void ProcessChildren(bool awaiting = false, bool parallel = true)
+        public void ProcessChildren(GameObject instance, bool awaiting = false, bool parallel = true)
         {
             if (IsDirty)
                 UpdateCaches();
@@ -47,7 +45,7 @@ namespace Remedy.Schematics
                 for (int i = 0; i < _cachedChildren.Count; i++)
                 {
                     var child = _cachedChildren[i];
-                    child.Trigger(false);
+                    child.Trigger(instance, false);
                 }
         }
     }

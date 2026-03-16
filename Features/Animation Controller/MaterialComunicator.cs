@@ -46,14 +46,14 @@ namespace Remedy.Materials
         [Serializable]
         public class FloatEvent
         {
-            public ScriptableEventFloat OnEvent;
+            public SignalData OnEvent;
             //[ShaderParam(ShaderPropertyType.Float)]
             public string ParameterName;
         }
         [Serializable]
         public class Vector2Event
         {
-            public ScriptableEventVector2 OnEvent;
+            public SignalData OnEvent;
             //[ShaderParam(ShaderPropertyType.Float)]
             [Tooltip("The Parameter that is set to the X axis value of the Vector2 passed from the Event")]
             public string XParameter;

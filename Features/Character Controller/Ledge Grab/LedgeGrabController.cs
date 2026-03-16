@@ -1,4 +1,5 @@
 using Remedy.Framework;
+using Remedy.Schematics.Utils;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -11,13 +12,13 @@ namespace Remedy.CharacterControllers.LedgeGrab
     {
         public Rigidbody Rigidbody => gameObject.GetCachedComponent<Rigidbody>();
 
-        [EventLink(typeof(CharacterMotionContext), nameof(CharacterMotionContext.JumpInput))]
-        public ScriptableEventBoolean.Input JumpInput => _motionContext.JumpInput;
-        [EventLink(typeof(CharacterMotionContext), nameof(CharacterMotionContext.MoveInput))]
-        public ScriptableEventVector2.Input MoveInput => _motionContext.MoveInput;
+        [SchematicEventLink(typeof(CharacterMotionContext), nameof(CharacterMotionContext.JumpInput))]
+        public Signal<bool> JumpInput => _motionContext.JumpInput;
+        [SchematicEventLink(typeof(CharacterMotionContext), nameof(CharacterMotionContext.MoveInput))]
+        public Signal<Vector2> MoveInput => _motionContext.MoveInput;
 
-        public ScriptableEvent.Output OnClamber = new();
-        public ScriptableEvent.Output OnLedgeGrabExitted = new();
+        public SignalData OnClamber;
+        public SignalData OnLedgeGrabExitted;
 
         [SchematicProperties]
         public LedgeGrabControllerProperties Properties;
@@ -41,7 +42,7 @@ namespace Remedy.CharacterControllers.LedgeGrab
             _cached = false;
             Cache();
 
-            JumpInput?.Subscribe(this, Jump);
+            JumpInput?.Subscribe(this, (bool val) => Jump(val)); 
 
             _motionContext.WallCheckInMoveDirection();
             if (_raycastContext.WallCastResult.TryGetClosestHit(out RaycastHit hit))
@@ -62,7 +63,7 @@ namespace Remedy.CharacterControllers.LedgeGrab
                 _clamberPoints[0] = _transform.position + Properties.ClamberHeight * Vector3.up;
                 _clamberPoints[1] = (_transform.position + Properties.ClamberHeight * Vector3.up) + -_lastWallHit.normal * Properties.ClamberForward;
                 _motionContext.FollowSpringPath(_transform.position.y, _clamberPoints);
-                OnClamber?.Invoke(default);
+                OnClamber?.FinalInvoke(default);
             }
         }
 

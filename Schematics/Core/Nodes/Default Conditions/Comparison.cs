@@ -30,28 +30,21 @@ namespace Remedy.Schematics
 
         public override bool Condition()
         {
-            try
-            {
-                if (GetPort("First Value").ConnectionCount != 0)
-                    FirstValue = GetInputValue<float>("First Value");
+            if (GetPort("First Value").ConnectionCount != 0)
+                FirstValue = GetInputValue<float>("First Value");
 
-                if (GetPort("Second Value").ConnectionCount != 0)
-                    SecondValue = GetInputValue<float>("Second Value");
+            if (GetPort("Second Value").ConnectionCount != 0)
+                SecondValue = GetInputValue<float>("Second Value");
 
-                switch(Operator)
-                {
-                    case ComparisonOperator.LessThan: return FirstValue < SecondValue;
-                    case ComparisonOperator.LessThanOrEqualTo: return FirstValue <= SecondValue;
-                    case ComparisonOperator.EqualTo: return FirstValue == SecondValue;
-                    case ComparisonOperator.GreaterThan: return FirstValue > SecondValue;
-                    case ComparisonOperator.GreaterThanOrEqualTo: return FirstValue >= SecondValue;
-                }
-                return false;
-            }
-            catch(Exception e)
+            switch(Operator)
             {
-                return false;
+                case ComparisonOperator.LessThan: return FirstValue < SecondValue;
+                case ComparisonOperator.LessThanOrEqualTo: return FirstValue <= SecondValue;
+                case ComparisonOperator.EqualTo: return FirstValue == SecondValue;
+                case ComparisonOperator.GreaterThan: return FirstValue > SecondValue;
+                case ComparisonOperator.GreaterThanOrEqualTo: return FirstValue >= SecondValue;
             }
+            return false;
         }
     }
 }

@@ -5,7 +5,7 @@ namespace Remedy.LevelDesign
 {
     public class CheckpointAgent : MonoBehaviour
     {
-        public ScriptableEventVector3.Input Respawn;
+        public SignalData Respawn;
         private Rigidbody _rb => gameObject.GetCachedComponent<Rigidbody>();
 
         private void OnEnable()

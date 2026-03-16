@@ -11,8 +11,8 @@ namespace Remedy.Schematics
     [Serializable]
     public class SchematicGraphNode : BlueGraph.Node
     {
-        public SchematicGraph ScriptGraph => (SchematicGraph)Graph;
-        public GameObject GameObject => ScriptGraph.GameObject;
+        public SchematicGraph Schematic => (SchematicGraph)Graph;
+        public GameObject GameObject => Schematic.Prefab;
         public Transform Transform => GameObject.transform;
 
         private Rigidbody _rigidBody;
@@ -30,9 +30,7 @@ namespace Remedy.Schematics
             = new();
 
         protected Remedy.Framework.SerializableDictionary<string, Union> _cachedInputsByName = new();
-        protected Remedy.Framework.SerializableDictionary<string, Union> _cachedOuputsByName = new();
-        protected List<string> _cachedInputNames = new();
-        protected List<string> _cachedOutputNames = new();
+        protected Remedy.Framework.SerializableDictionary<string, Union> _cachedOutputsByName = new();
 
         protected Remedy.Framework.SerializableDictionary<string, string[]> _cachedPortConnections = new();
         protected List<SchematicActionNode> _cachedChildren = new();
@@ -49,20 +47,23 @@ namespace Remedy.Schematics
         /// </summary>
         public void UpdateCaches()
         {
-            _cachedInputsByName.Clear();
-            _cachedOuputsByName.Clear();
+            //_cachedInputsByName.Clear();
+            //_cachedOuputsByName.Clear();
             _cachedPortConnections.Clear();
             _cachedInputValueSources.Clear();
-            _cachedInputNames.Clear();
-            _cachedOutputNames.Clear();
+            //_cachedInputNames.Clear();
+            //_cachedOutputNames.Clear();
+            
+            int inputIndex = 0;
 
             foreach (var kvp in Ports.Where(p => p.Value.Type != typeof(ActionPort)))
             {
                 var port = kvp.Value;
+                
                 if (port.Direction == PortDirection.Input)
                 {
-                    _cachedInputsByName[port.Name] = default;
-                    _cachedInputNames.Add(port.Name);
+                    _cachedInputsByName[port.Name] = inputIndex;
+                    //_cachedInputNames.Add(port.Name);
 
                     // Build source mapping
                     var sources = new List<(SchematicGraphNode, string)>();
@@ -74,18 +75,21 @@ namespace Remedy.Schematics
                         }
                     }
                     _cachedInputValueSources[port.Name] = sources.ToArray();
+
+                    inputIndex++;
                 }
                 else
                 {
-                    _cachedOuputsByName[port.Name] = default;
-                    _cachedOutputNames.Add(port.Name);
+                    _cachedOutputsByName[port.Name] = default;
+                    //_cachedOutputNames.Add(port.Name);
+
+                    //outputIndex++;
                 }
 
                 _cachedPortConnections[port.Name] = port.ConnectedPorts.Where(p => p != null).Select(p => p.ID).ToArray();
             }
 
             RebuildChildrenCache();
-
             OnCacheUpdate();
 
             IsDirty = false;
@@ -127,7 +131,7 @@ namespace Remedy.Schematics
             if (IsDirty)
                 UpdateCaches();
 
-            _cachedOuputsByName[name] = value;
+            _cachedOutputsByName[name] = value;
         }
 
 
@@ -139,23 +143,28 @@ namespace Remedy.Schematics
         /// <returns></returns>
         public new T GetInputValue<T>(string name, T defaultValue = default)
         {
-            /*            if(HasInputConnections(name))
-                        {*/
             if(IsDirty)
                 UpdateCaches();
 
             try
             {
                 PullMostRecentInputValue(name);
-                var value = _cachedInputsByName[name].Get<T>();
-               return value;
+                var value = _cachedInputsByName[name].GetValue<T>();
+                return value;
             }
             catch
             {
                 return defaultValue;
             }
-            //}
         }
+
+        public int GetInputPort(string name)
+        {
+            return _cachedInputsByName[name];
+        }
+
+
+
 
         /// <summary>
         /// Returns the value of the Union for the Given Port cast to the given value
@@ -170,7 +179,7 @@ namespace Remedy.Schematics
 
             //UpdateCaches();
             PullAllInputValues(name);
-            return _cachedInputsByName[name].Get<List<T>>();
+            return _cachedInputsByName[name].GetValue<List<T>>();
         }
 
         /// <summary>
@@ -200,7 +209,7 @@ namespace Remedy.Schematics
             if (IsDirty)
                 UpdateCaches();
 
-            return _cachedOuputsByName[name].Get<T>();
+            return _cachedOutputsByName[name].GetValue<T>();
         }
 
         /// <summary>
@@ -219,15 +228,15 @@ namespace Remedy.Schematics
             {
                 var (node, portName) = sources[i];
 
-                if (node._cachedOuputsByName[portName].LastUpdateTick > mostRecentTick)
+                if (node._cachedOutputsByName[portName].LastUpdateTick > mostRecentTick)
                 {
                     mostRecentPort = (node, portName);
-                    mostRecentTick = node._cachedOuputsByName[portName].LastUpdateTick;
+                    mostRecentTick = node._cachedOutputsByName[portName].LastUpdateTick;
                 }
             }
 
             if(mostRecentPort.node != null)
-                _cachedInputsByName[inputName] = mostRecentPort.node._cachedOuputsByName[mostRecentPort.name];
+                _cachedInputsByName[inputName] = mostRecentPort.node._cachedOutputsByName[mostRecentPort.name];
         }
 
         /// <summary>
@@ -250,7 +259,7 @@ namespace Remedy.Schematics
             {
                 var (node, portName) = sources[i];
 
-                _returnValList.Add(node._cachedOuputsByName[portName]);
+                _returnValList.Add(node._cachedOutputsByName[portName]);
             }
 
             _cachedInputsByName[inputName] = _returnValList;

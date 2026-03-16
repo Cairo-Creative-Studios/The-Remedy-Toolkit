@@ -9,7 +9,7 @@ using System.Reflection;
 public class ObjectManager : Singleton<ObjectManager>
 {
     [Tooltip("Boolean Events that determine whether the physics system should be paused. This affects all physics objects, of course.")]
-    public ScriptableEventBoolean.Input PhysicsPause;
+    public Action<bool> PhysicsPause;
 
     [Tooltip("Time between last instantiation and the next is subtracted from this to determine the amount of time to wait before detroying an instance.")]
     public int MaxTimeToDestroy = 1000;
@@ -26,29 +26,15 @@ public class ObjectManager : Singleton<ObjectManager>
 
     private void OnEnable()
     {
-        PhysicsPause.Subscribe(this, (bool val) =>
-        {
-            bool isPaused = false;
+        PhysicsPause += SetPhysicsState;
+    }
 
-            if (val) isPaused = true;
-            else
-            {
-                foreach (var subEvent in PhysicsPause.Subscriptions)
-                {
-                    if (subEvent.CurrentValue)
-                    {
-                        isPaused = true;
-                        break;
-                    }
-                }
-            }
-
-            if (isPaused)
-                Physics.simulationMode = SimulationMode.Script;
-            else
-                Physics.simulationMode = SimulationMode.FixedUpdate;
-        });
-
+    private void SetPhysicsState(bool isPaused)
+    {
+        if (isPaused)
+            Physics.simulationMode = SimulationMode.Script;
+        else
+            Physics.simulationMode = SimulationMode.FixedUpdate;
     }
 
     /// <summary>

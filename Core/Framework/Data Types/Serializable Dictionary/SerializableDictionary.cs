@@ -1,8 +1,8 @@
-﻿using JetBrains.Annotations;
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using Unity.VisualScripting;
 using UnityEngine;
 
 namespace Remedy.Framework
@@ -180,6 +180,11 @@ namespace Remedy.Framework
             {
                 Add(key, from[key]);
             }
+        }
+
+        public IReadOnlyDictionary<TKey, TValue> GetReadOnlyDictionary()
+        {
+            return dictionary;
         }
 
         public TKey KeyAt(int index)

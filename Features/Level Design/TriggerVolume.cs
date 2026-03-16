@@ -11,7 +11,7 @@ namespace Remedy.LevelDesign
     [RequireComponent(typeof(BoxCollider))]
     public class TriggerVolume : MonoBehaviour
     {
-        public ScriptableEventBase.Output OnTrigger;
+        public SignalData OnTrigger;
         public bool showCollider = true;
 
         //[Dropdown("GetTriggerVolumes")]

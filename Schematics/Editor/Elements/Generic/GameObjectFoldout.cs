@@ -2,6 +2,7 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
 using System;
+using System.Linq;
 
 public class GameObjectFoldout : VisualElement
 {
@@ -10,24 +11,29 @@ public class GameObjectFoldout : VisualElement
 
     public GameObjectFoldout(GameObject gameObject, string GUID, string id, string labelText)
     {
-        // Icon
-        Texture2D icon = EditorGUIUtility.IconContent("GameObject Icon").image as Texture2D;
 
         // Layout container
         var container = new VisualElement();
         container.style.flexDirection = FlexDirection.Row;
         container.style.alignItems = Align.FlexStart;
 
+        // Icon
+        Texture2D icon = EditorGUIUtility.IconContent("GameObject Icon").image as Texture2D;
         // Icon image
         var iconImage = new Image
         {
             image = icon,
-            scaleMode = ScaleMode.ScaleToFit
+            scaleMode = ScaleMode.ScaleToFit,
+            style =
+            {
+                minWidth = 16,
+                minHeight = 16,
+                maxWidth = 16,
+                maxHeight = 16,
+                marginRight = 4
+            }
         };
-        iconImage.style.minWidth = 16;
-        iconImage.style.minHeight = 16;
-        iconImage.style.maxWidth = 16;
-        iconImage.style.maxHeight = 16;
+        
 
         // Foldout
         Foldout = new PersistentFoldout(GUID, id)
@@ -51,9 +57,33 @@ public class GameObjectFoldout : VisualElement
             contentContainer.style.paddingLeft = 0;
         }
 
+        var indent = new VisualElement()
+        {
+            style =
+            {
+                width = 8
+            }
+        };
+
         // Add elements
-        container.Add(iconImage);
+        container.Add(indent);
         container.Add(Foldout);
+
+        var toggle = container.Q<Toggle>();
+        var header = toggle.Children().ElementAt(0);
+
+        var children = header.Children();
+
+        var handle = children.ElementAt(0);
+        var label = children.ElementAt(1);
+
+        header.Clear();
+        handle.style.marginRight = 0;
+
+        header.Add(handle);
+        header.Add(iconImage);
+        header.Add(label);
+
         this.Add(container);
 
         // Enable inline renaming

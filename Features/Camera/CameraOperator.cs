@@ -1,6 +1,7 @@
 /*using SaintsField;
 using SaintsField.Playa;*/
 using Unity.VisualScripting;
+using Unity.VisualScripting.YamlDotNet.Core.Tokens;
 using UnityEngine;
 
 namespace Remedy.Cameras
@@ -8,24 +9,21 @@ namespace Remedy.Cameras
 
     public class CameraOperator : MonoBehaviour
     {
-        /*[Layout("Settings", ELayout.Tab | ELayout.Collapse)]
-        [Layout("Settings/Events", ELayout.Tab | ELayout.Collapse)]
-        [LayoutStart("./Input")]*/
-        public ScriptableEventVector2.Input LookInput;
+        public SignalData SetObjectToFollow;
+        public SignalData LookInput;
 
-        /*[Layout("Settings", ELayout.Tab | ELayout.Collapse)]
-        [Layout("Settings/Events", ELayout.Tab | ELayout.Collapse)]
-        [LayoutStart("./Output")]*/
         [Tooltip("A direction value is passed, which is the horizontal direction the Camera is facing.")]
-        public ScriptableEventVector3.Output AimDirectionOutput;
+        public SignalData AimDirectionOutput;
         [Tooltip("A Boolean that tells the Rig that the Character Should look toward the AimDirectionOutput value.")]
-        public ScriptableEventBoolean.Output OrientCharacterToCameraOutput;
+        public SignalData OrientCharacterToCameraOutput;
 
         /*[Layout("Settings", ELayout.Tab | ELayout.Collapse)]
         [Layout("Settings/Component", ELayout.Tab | ELayout.Collapse)]
         [LayoutStart("./References")]
         [Expandable]*/
+        [SchematicProperties]
         public CameraOperatorProperties Properties;
+        public Transform Follow;
         public Transform Root;
         public Transform Camera;
 
@@ -60,12 +58,16 @@ namespace Remedy.Cameras
             Camera.gameObject.GetComponent<Camera>().enabled = false;
             CameraManager.SetCameraOperator(this);
 
-            LookInput?.Subscribe(this, Look);
+            LookInput?.Subscribe(this, (Vector2 val) => Look(val));
+            SetObjectToFollow?.Subscribe(this, (GameObject val) => {
+                Follow = val.transform;
+            });
         }
 
         private void OnDisable()
         {
             LookInput?.Unsubscribe(this);
+            SetObjectToFollow?.Unsubscribe(this);
         }
 
         private void Reset()

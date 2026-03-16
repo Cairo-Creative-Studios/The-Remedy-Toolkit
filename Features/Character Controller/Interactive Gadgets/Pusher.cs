@@ -8,7 +8,7 @@ namespace Remedy.CharacterControllers.Gadgets
     {
         [Header("Output Events")]
         [Tooltip("Invoked when a Rigidbody Collides with this.")]
-        public ScriptableEvent OnHit;
+        public SignalData OnHit;
 
         [Header("Properties")]
         public float Force;
@@ -41,7 +41,7 @@ namespace Remedy.CharacterControllers.Gadgets
                 ApplyForce(rb).Forget();
                 transform.localScale = Vector3.Scale(_defaultScale, ScaleOnHit);
 
-                OnHit?.Invoke(default);
+                OnHit?.FinalInvoke(default);
             }
         }
 

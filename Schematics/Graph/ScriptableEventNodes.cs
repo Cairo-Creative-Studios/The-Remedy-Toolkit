@@ -4,71 +4,26 @@ using System;
 using UnityEngine;
 using Remedy.Schematics.Utils;
 
-#if UNITY_EDITOR
-using UnityEditor;
-#endif
-
-public interface IIFlowNode { }
-
-/*
 [Serializable]
-public class FlowInvokeBase : SchematicActionNode, IIFlowNode
-{
-    private static List<Type> _nodeTypes;
-    public static List<Type> NodeTypes => _nodeTypes ??= typeof(FlowInvokeBase).GetInheritedTypes();
-    public virtual ScriptableEventBase EventBase { get => null; set => _ = value; }
-
-#if UNITY_EDITOR
-    [SerializeField]
-    public GlobalObjectId EventID;
-#endif
-}
-
-[Serializable]
-public class FlowOnInvokeBase : SchematicEventNode, IIFlowNode
-{
-    private static List<Type> _nodeTypes;
-    public static List<Type> NodeTypes => _nodeTypes ??= typeof(FlowOnInvokeBase).GetInheritedTypes();
-    public virtual ScriptableEventBase EventBase { get => null; set => _ = value; }
-
-    public (UnityEngine.Object instance, Action<Union> action) Subscription = new();
-
-#if UNITY_EDITOR
-    [SerializeField]
-    public GlobalObjectId EventID;
-#endif
-}*/
-
-[Serializable]
-[Node(Name = "Invoke Event", Path = "ScriptableEvents/Events"), Tags("Object")]
-public class InvokeScriptableEvent : SchematicActionNode
+[Node(Name = "Send a Signal", Path = "ScriptableEvents/Events"), Tags("Object")]
+public class SendSignalNode : SchematicActionNode
 {
     [Editable]
-    public ScriptableEventBase Event;
-    [Input]
-    public Union Input;
+    public SignalData Signal;
 
-    protected override void OnTrigger(bool awaiting = false)
+    protected override void OnTrigger(GameObject instance, bool awaiting = false)
     {
         var input = GetInputValue<Union>(nameof(Input), default);
-        Event?.Invoke(input);
+        Signal?.Invoke(input);
     }
 }
 
 [Serializable]
-[Node(Name = "On Invoke Event", Path = "ScriptableEvents/Events"), Tags("Object")]
-public class OnScriptableEventInvoked : SchematicEventNode
+[Node(Name = "On Signal Received"), Tags("Object")]
+public class OnSignalReceivedNode : SchematicEventNode
 {
-
     [Editable]
-    public ScriptableEventBase Event;
-    [Output]
-    public Union Output;
-
-    public override object OnRequestValue(Port port)
-    {
-        return Output;
-    }
+    public SignalData Signal;
 }
  
 [Node(Name = "Set Variable", Path = "Schematic/Variables"), Tags("Object")]
@@ -79,9 +34,23 @@ public class SetScriptableVariable : SchematicActionNode
     [Input]
     public Union Value;
 
-    protected override void OnTrigger(bool awaiting = false)
+    protected override void OnTrigger(GameObject instance, bool awaiting = false)
     {
         var newVal = GetInputValue<Union>(nameof(Value), default);
         Target.Value = newVal;
     } 
+}
+
+[Node(Name = "Get Variable", Path = "Schematic/Variables"), Tags("Object")]
+public class GetScriptableVariable : SchematicActionNode
+{
+    [Editable]
+    public ScriptableVariable Target;
+    [Output]
+    public Union Value;
+
+    protected override void OnTrigger(GameObject instance, bool awaiting = false)
+    {
+        SetOutputValue(nameof(Value), Target.Value);
+    }
 }

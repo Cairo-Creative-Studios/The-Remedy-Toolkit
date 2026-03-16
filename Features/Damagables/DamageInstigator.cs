@@ -13,11 +13,11 @@ namespace Remedy.Damagables
 /*        [Layout("Settings", ELayout.Tab | ELayout.Collapse)]
         [Layout("Settings/Events", ELayout.Tab | ELayout.Collapse)]
         [LayoutStart("./Input")]*/
-        public ScriptableEvent Instigate;
+        public SignalData Instigate;
 /*        [Layout("Settings", ELayout.Tab | ELayout.Collapse)]
         [Layout("Settings/Events", ELayout.Tab | ELayout.Collapse)]
         [LayoutStart("./Output")]*/
-        public ScriptableEvent OnInstigation;
+        public SignalData OnInstigation;
 
 /*        [Layout("Settings", ELayout.Tab | ELayout.Collapse)]
         [Layout("Settings/Component", ELayout.Tab | ELayout.Collapse)]
@@ -33,7 +33,7 @@ namespace Remedy.Damagables
         }
         void OnDisable()
         {
-            Instigate?.UnSubscribe(this);
+            Instigate?.Unsubscribe(this);
         }
 
 /*        public DropdownList<DamageType> GetDamageTypes()

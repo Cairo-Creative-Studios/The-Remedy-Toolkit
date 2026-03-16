@@ -9,22 +9,24 @@ namespace Remedy.Schematics
     public class SchematicGraphEditor : GraphEditor
     {
         SchematicGraphEditorWindow editorWindow;
-        public SchematicScope SchematicScope;
+        /*public SchematicScope SchematicScope;*/
 
         public override GraphEditorWindow CreateEditorWindow()
         {
             SchematicGraph graph = target as SchematicGraph;
 
             editorWindow = CreateInstance<SchematicGraphEditorWindow>();
-            if(SchematicScope == null) SchematicScope = EnsureSchematicScopeExists(graph);
-            editorWindow.SchematicScope = SchematicScope;
+            /*            if(SchematicScope == null) SchematicScope = EnsureSchematicScopeExists(graph);
+                        editorWindow.SchematicScope = SchematicScope;*/
+            editorWindow.SchematicGraph = graph;
             editorWindow.Show();
 
             editorWindow.Load(graph);
 
             return editorWindow;
         }
-        private static SchematicScope EnsureSchematicScopeExists(SchematicGraph graph)
+        /*
+         * private static SchematicScope EnsureSchematicScopeExists(SchematicGraph graph)
         {
             SchematicScope schematic;
             string graphPath = AssetDatabase.GetAssetPath(graph);
@@ -48,6 +50,7 @@ namespace Remedy.Schematics
 
             return schematic;
         }
+        */
 
     }
 }

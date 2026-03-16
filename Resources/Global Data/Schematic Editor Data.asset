@@ -12,110 +12,64 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1e7c3ddb2f8aa26459d951b8761a37a4, type: 3}
   m_Name: Schematic Editor Data
   m_EditorClassIdentifier: 
-  ProcessedPrefabs:
-  - {fileID: 8490388191301676169, guid: 58ae3750dfb90844ea4646f16a4348f4, type: 3}
-  - {fileID: 8082599592686906416, guid: 3c3e25452c4c7d84a88b912e65404c30, type: 3}
-  ProcessedPaths:
-  - Assets/Contributors/Chihiro/Prefabs/Test/GameObject.prefab
+  _profileEditor: 0
   _prefabData:
   - GlobalID: GlobalObjectId_V1-1-62c479dc71a53ff44ae6cdcbdcc2e2c9-3597365271581457023-0
-    Scope: {fileID: 0}
     Graphs: []
   - GlobalID: GlobalObjectId_V1-1-62c479dc71a53ff44ae6cdcbdcc2e2c9-8714214207105856949-0
-    Scope: {fileID: 0}
     Graphs: []
   - GlobalID: GlobalObjectId_V1-1-862fd90b151392f4a8f5d7743ccfd779-1358112642123171414-0
-    Scope: {fileID: 0}
     Graphs: []
   - GlobalID: GlobalObjectId_V1-1-62c479dc71a53ff44ae6cdcbdcc2e2c9-6475188410907124816-0
-    Scope: {fileID: 0}
     Graphs: []
   - GlobalID: GlobalObjectId_V1-1-62c479dc71a53ff44ae6cdcbdcc2e2c9-2026998809770358065-0
-    Scope: {fileID: 0}
     Graphs: []
   - GlobalID: GlobalObjectId_V1-1-58a6dcaf84563654a92d2df476006f76-825903726502817097-0
-    Scope: {fileID: 0}
     Graphs: []
   - GlobalID: GlobalObjectId_V1-1-62c479dc71a53ff44ae6cdcbdcc2e2c9-825903726502817097-0
-    Scope: {fileID: 0}
     Graphs: []
   - GlobalID: GlobalObjectId_V1-1-69b13f910099daf4a81bad6ff1e06569-8893941164466244840-0
-    Scope: {fileID: 0}
     Graphs: []
   - GlobalID: GlobalObjectId_V1-1-a5a178eb8a3944744ae9bc27e7d973d9-5337252188943495844-0
-    Scope: {fileID: 0}
     Graphs: []
   - GlobalID: GlobalObjectId_V1-1-a5a178eb8a3944744ae9bc27e7d973d9-2080909247161070434-0
-    Scope: {fileID: 0}
     Graphs: []
   - GlobalID: GlobalObjectId_V1-1-cd4216e2e67a77d4699c78844175060b-8937172756617501005-0
-    Scope: {fileID: 0}
     Graphs: []
   - GlobalID: GlobalObjectId_V1-1-a5a178eb8a3944744ae9bc27e7d973d9-2804271041633648500-0
-    Scope: {fileID: 0}
     Graphs: []
   - GlobalID: GlobalObjectId_V1-1-a5a178eb8a3944744ae9bc27e7d973d9-2045892961923646113-0
-    Scope: {fileID: 0}
     Graphs: []
   - GlobalID: GlobalObjectId_V1-1-a5a178eb8a3944744ae9bc27e7d973d9-7477679240146172613-0
-    Scope: {fileID: 0}
     Graphs: []
   - GlobalID: GlobalObjectId_V1-1-a5a178eb8a3944744ae9bc27e7d973d9-1885865610412189224-0
-    Scope: {fileID: 0}
     Graphs: []
-  _prefabComponentReference:
-    items:
-    - key: GlobalObjectId_V1-2-cd4216e2e67a77d4699c78844175060b-8937172756617501005-0
-      value:
-      - GlobalObjectId_V1-0-00000000000000000000000000000000-0-0
-  _prefabGUIDToGlobalObjectID:
-    items:
-    - key: cd4216e2e67a77d4699c78844175060b
-      value: GlobalObjectId_V1-1-cd4216e2e67a77d4699c78844175060b-8937172756617501005-0
-    - key: a5a178eb8a3944744ae9bc27e7d973d9
-      value: GlobalObjectId_V1-1-a5a178eb8a3944744ae9bc27e7d973d9-1885865610412189224-0
+  - GlobalID: GlobalObjectId_V1-1-73f59b72357d1204fb775e168a53227c-1970344125448015546-0
+    Graphs: []
+  - GlobalID: GlobalObjectId_V1-1-ea528e57f2f51ea4fb457b5acd4ac16e-1866079433564930464-0
+    Graphs: []
   Graphs: []
-  Scopes: []
-  IOBases: []
-  WorkingEventSetDebug:
-    items: []
-  ScriptableEventReferenceDebug:
-  - _name: Output
-    Property:
-      _path: 'InputMaps.Array.data[0].Inputs.Array.data[0]'
-    _defaultType:
-      typeName: 
-    _defaultName: 
-    _fieldName: Output
-  - _name: Output
-    Property:
-      _path: 'InputMaps.Array.data[0].Inputs.Array.data[1]'
-    _defaultType:
-      typeName: 
-    _defaultName: 
-    _fieldName: Output
-  - _name: Output
-    Property:
-      _path: 'InputMaps.Array.data[0].Inputs.Array.data[2]'
-    _defaultType:
-      typeName: 
-    _defaultName: 
-    _fieldName: Output
-  - _name: Output
-    Property:
-      _path: 'InputMaps.Array.data[0].Inputs.Array.data[3]'
-    _defaultType:
-      typeName: 
-    _defaultName: 
-    _fieldName: Output
-  - _name: Pause
-    Property:
-      _path: 
-    _defaultType:
-      typeName: 
-    _defaultName: 
-    _fieldName: Pause
+  ScriptableEventReferenceDebug: []
   _invokeNodesToReferenceCache:
     items: []
   _onInvokeNodesToReferenceCache:
     items: []
+  _editorTypeSettings:
+  - TypeName: 
+    Type: UnityEngine.Vector3, UnityEngine.CoreModule, Version=0.0.0.0, Culture=neutral,
+      PublicKeyToken=null
+    ColorInEditor: {r: 0.4716981, g: 0.28193453, b: 0, a: 1}
+  - TypeName: 
+    Type: UnityEngine.Vector2, UnityEngine.CoreModule, Version=0.0.0.0, Culture=neutral,
+      PublicKeyToken=null
+    ColorInEditor: {r: 0.5377358, g: 0.4057168, b: 0, a: 1}
+  - TypeName: 
+    Type: Remedy.Schematics.Utils.Union, Remedy.ScriptableEvents, Version=0.0.0.0,
+      Culture=neutral, PublicKeyToken=null
+    ColorInEditor: {r: 0.19357423, g: 0.34190696, b: 0.4716981, a: 1}
+  - TypeName: 
+    Type: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089
+    ColorInEditor: {r: 0, g: 0.09348713, b: 0.4433962, a: 1}
+  - TypeName: 
+    Type: System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089
+    ColorInEditor: {r: 0.44313726, g: 0, b: 0.04075891, a: 1}

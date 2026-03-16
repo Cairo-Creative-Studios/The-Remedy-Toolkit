@@ -5,12 +5,12 @@ using UnityEngine;
 namespace Remedy.Schematics
 {
     [Serializable]
-    [Output("▶", typeof(ActionPort), Multiple = true)]
+    [Output("▶", typeof(ActionPort), enableCasting: false, Multiple = true)]
     public abstract class SchematicActionNode : SchematicActionNodeBase
     { }
 
     [Serializable]
-    [Input("▷", typeof(ActionPort), Multiple = true)]
+    [Input("▷", typeof(ActionPort), enableCasting: false, Multiple = true)]
     public abstract class SchematicActionNodeBase : SchematicGraphNode
     {
         protected bool _processChildren = true;
@@ -23,21 +23,22 @@ namespace Remedy.Schematics
             return null;
         }
 
-        public void Trigger(bool awaiting = false)
+
+        public void Trigger(GameObject instance, bool awaiting = false)
         {
-            OnTrigger(false);
+            OnTrigger(instance, false);
 
             if (_processChildren)
             {
-                ProcessChildren(false);
+                ProcessChildren(instance, false);
             }
         }
 
-        protected virtual void OnTrigger(bool awaiting = false)
+        protected virtual void OnTrigger(GameObject instance, bool awaiting = false)
         {
         }
 
-        public void ProcessChildren(bool awaiting = false, bool parallel = false)
+        public void ProcessChildren(GameObject instance, bool awaiting = false, bool parallel = false)
         {
             if (IsDirty)
                 UpdateCaches();
@@ -47,7 +48,7 @@ namespace Remedy.Schematics
             for (int i = 0; i < _cachedChildren.Count; i++)
             {
                 var child = _cachedChildren[i];
-                child.Trigger(awaiting);
+                child.Trigger(instance, awaiting);
             }
         }
     }

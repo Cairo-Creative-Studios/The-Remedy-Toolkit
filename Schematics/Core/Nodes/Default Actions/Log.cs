@@ -27,7 +27,7 @@ namespace Remedy.Schematics
         [Editable]
         public DebugType Type = DebugType.Normal;
 
-        protected override void OnTrigger(bool awaiting = false)
+        protected override void OnTrigger(GameObject instance, bool awaiting = false)
         {
                 if (Type == DebugType.Normal)
                     Debug.Log(Text);

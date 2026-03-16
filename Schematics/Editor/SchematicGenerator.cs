@@ -24,10 +24,10 @@ public static class SchematicGenerator
     {
         var assetPath = AssetDatabase.GetAssetPath(prefab);
 
-        if (InstantiatingPrefab != null) return true;
+        //if (InstantiatingPrefab != null) return true;
         InstantiatingPrefab = prefab;
 
-        if (SchematicAssetManager.ObjectFolderExists(prefab)) return true;
+        //if (SchematicAssetManager.ObjectFolderExists(prefab)) return true;
 
         if (!EditorUtility.DisplayDialog(
             "Create Schematic?",
@@ -76,17 +76,18 @@ public static class SchematicGenerator
 
         var controller = loadedPrefab.GetComponent<SchematicInstanceController>() ?? loadedPrefab.AddComponent<SchematicInstanceController>();
 
-        controller.SchematicGraphs = controller.SchematicGraphs.Where(item => item != null).Append(schematicGraph).ToArray();
+        controller.SchematicGraph = controller.SchematicGraph = schematicGraph;
 
         controller.Assign(schematicGraph);
+        controller.SchematicGraph = schematicGraph;
         schematicGraph.Prefab = loadedPrefab;
 
-        var schematicScope = SchematicAssetManager.Create<SchematicScope>(prefab, "", "", "SchematicScope");
+/*        var schematicScope = SchematicAssetManager.Create<SchematicScope>(prefab, "", "", "SchematicScope");
         schematicScope.Graph = schematicGraph;
-        schematicGraph.Scope = schematicScope;
+        schematicGraph.Scope = schematicScope;*/
 
         var editor = (SchematicGraphEditor)GraphAssetHandler.OnOpenGraph(schematicGraph);
-        editor.SchematicScope = schematicScope;
+        /*editor.SchematicScope = schematicScope;*/
 
         EditorApplication.RepaintHierarchyWindow();
     }

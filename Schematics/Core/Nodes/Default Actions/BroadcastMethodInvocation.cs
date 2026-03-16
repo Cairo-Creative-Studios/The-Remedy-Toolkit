@@ -18,7 +18,7 @@ namespace Remedy.Schematics
         [Input("Arguments")]
         public List<object> MethodArguments;
 
-        protected override void OnTrigger(bool awaiting = false)
+        protected override void OnTrigger(GameObject instance, bool awaiting = false)
         {
             Target = GetOutputValue<GameObject>("Target");
             MethodName = GetOutputValue<string>("Name");

@@ -15,7 +15,7 @@ namespace Remedy.Inventories
         [Layout("Settings/Events", ELayout.Tab | ELayout.Collapse)]
         [LayoutStart("./Output")]*/
         [Tooltip("Called when this Inventory is Collected, passing the GameObject that contains the Inventory Component that picked it up.")]
-        public ScriptableEventGameObject OnCollect;
+        public SignalData OnCollect;
 
         /*[Layout("Settings", ELayout.Tab | ELayout.Collapse)]
         [Layout("Settings/Component", ELayout.Tab | ELayout.Collapse)]

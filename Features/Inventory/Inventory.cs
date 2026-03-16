@@ -14,17 +14,17 @@ namespace Remedy.Inventories
         [LayoutStart("./Input")]*/
         public NavigationMode[] NavigationModes;
         //[InfoBox("The ID of InventoryItemData are passed to these Input Events to create a new InventoryItem instance when adding, or to remove the InventoryItem")]
-        public ScriptableEventInt.Input SetItem;
-        public ScriptableEventInt.Input AddItem;
-        public ScriptableEventInt.Input RemoveItem;
+        public SignalData SetItem;
+        public SignalData AddItem;
+        public SignalData RemoveItem;
 
         /*[Layout("Settings", ELayout.Tab | ELayout.Collapse)]
         [Layout("Settings/Events", ELayout.Tab | ELayout.Collapse)]
         [LayoutStart("./Output")]*/
-        public ScriptableEvent OnInventoryChanged;
-        public ScriptableEventInt OnSetActiveItem;
-        public ScriptableEventInt OnItemAdded;
-        public ScriptableEventInt OnItemRemoved;
+        public SignalData OnInventoryChanged;
+        public SignalData OnSetActiveItem;
+        public SignalData OnItemAdded;
+        public SignalData OnItemRemoved;
 
         public int InventoryLayer => Data.InventoryLayer;
 
@@ -123,11 +123,11 @@ namespace Remedy.Inventories
             public bool IsTable => Mode == NavigationLayout.Table;
 
             //[ShowIf("IsSwitch")]
-            public ScriptableEvent SwitchInput;
+            public SignalData SwitchInput;
             //[ShowIf("IsSwitchDirection")]
-            public ScriptableEventBoolean DirectionalSwitchInput;
+            public SignalData DirectionalSwitchInput;
             //[ShowIf("IsTable")]
-            public ScriptableEventVector2 TableInput;
+            public SignalData TableInput;
         }
 
         // Pick up 

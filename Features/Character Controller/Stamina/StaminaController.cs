@@ -12,19 +12,19 @@ namespace Remedy.CharacterControllers.Stamina
         [Layout("Settings/Events", ELayout.Tab | ELayout.Collapse)]
         [LayoutStart("./Input")]*/
         [Tooltip("Called from other scripts to use Stamina")]
-        public ScriptableEventFloat UseStamina;
+        public SignalData UseStamina;
         [Tooltip("Boolean Events that determine whether Stamina can regerate or not.")]
-        public ScriptableEventBoolean RegenerateStamina;
+        public SignalData RegenerateStamina;
 
         /*[Layout("Settings", ELayout.Tab | ELayout.Collapse)]
         [Layout("Settings/Events", ELayout.Tab | ELayout.Collapse)]
         [LayoutStart("./Output")]*/
         [Tooltip("Passes the amount that was consumed")]
-        public ScriptableEventFloat.Output OnStaminaConsumed;
+        public SignalData OnStaminaConsumed;
         [Tooltip("Passes the current amount of stamina")]
-        public ScriptableEventFloat.Output OnStaminaChanged;
+        public SignalData OnStaminaChanged;
         [Tooltip("Triggered when the Controller runs out of Stamina")]
-        public ScriptableEvent.Output OnStaminaDrained;
+        public SignalData OnStaminaDrained;
 
         /*[Layout("Settings", ELayout.Tab | ELayout.Collapse)]
         [Layout("Settings/Component", ELayout.Tab | ELayout.Collapse)]
@@ -60,8 +60,8 @@ namespace Remedy.CharacterControllers.Stamina
 
         private void OnDisable()
         {
-            UseStamina?.UnSubscribe(this);
-            RegenerateStamina?.UnSubscribe(this);
+            UseStamina?.Unsubscribe(this);
+            RegenerateStamina?.Unsubscribe(this);
         }
 
         private void Update()

@@ -1,9 +1,7 @@
 using Remedy.Framework;
-using Remedy.Schematics;
 using SchematicAssets;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Reflection;
 using UnityEditor;
@@ -23,555 +21,539 @@ using UnityEngine.UIElements;
 /// - Component tabs with add/remove support<br/>
 /// - I/O docking via <see cref="IODockRegistry"/><br/>
 /// - Selection synchronization with Unity's inspector<br/>
+/// - Lazy loading for performance optimization<br/>
+/// - Cached component and type data<br/>
 /// </remarks>
 public class PrefabHierarchy : VisualElement
 {
     private GameObject _prefab;
     private string _assetPath;
-    SerializableDictionary<Transform, SerializableDictionary<SerializableType, VisualElement>> evMap = new ();
+    SerializableDictionary<Transform, SerializableDictionary<SerializableType, VisualElement>> evMap = new();
+
+    // Caching structures
+    private static List<Type> _availableComponentTypes;
+    private static bool _componentTypesInitialized = false;
+
+    // Lazy loading tracking
+    private SchematicGraphEditorWindow _schematicWindow;
+    private EditorWindow _editorWindow;
+    private bool _includeSelf;
+    private List<LazyListFoldout> _foldouts = new();
 
     /// <summary>
     /// Creates a new prefab hierarchy view.
     /// </summary>
     /// <param name="prefab">Prefab root GameObject to display.</param>
     /// <param name="editorWindow">Editor window hosting the view, used for state and selection handling.</param>
-    /// <param name="drawIO">If true, enables input/output docking UI; otherwise shows components only.</param>
-    /// <param name="includeSelf">If true, includes the prefab root in the hierarchy view.</param>
     /// <exception cref="ArgumentNullException">Thrown if <paramref name="prefab"/> or <paramref name="editorWindow"/> is null.</exception>
     /// <exception cref="InvalidOperationException">Thrown if <paramref name="prefab"/> is not a valid prefab instance.</exception>
-    public PrefabHierarchy(GameObject prefab, EditorWindow editorWindow, bool drawIO, bool includeSelf)
+    public PrefabHierarchy(GameObject prefab, EditorWindow editorWindow)
     {
         _prefab = prefab;
         _assetPath = AssetDatabase.GetAssetPath(prefab);
 
+        // Initialize caching structures
         var container = new VisualElement();
-
-        SchematicGraphEditorWindow schematicWindow = null;
 
         if (editorWindow is SchematicGraphEditorWindow asSchematicWindow)
         {
-            schematicWindow = asSchematicWindow;
+            _schematicWindow = asSchematicWindow;
         }
 
-        if (schematicWindow == null) drawIO = false;
+        RebuildHierarchy(_prefab.transform);
 
-        //schematicWindow.SchematicScope.PrefabID = GlobalObjectId.GetGlobalObjectIdSlow(prefab);
-
-        var rootFoldout = new PersistentFoldout(schematicWindow == null ? editorWindow.name : schematicWindow.SchematicGUID, "Components") { text = "Prefab Component Input/Output", value = true };
-        container.Add(rootFoldout);
-
-        rebuildHierarchy();
-
-        void rebuildHierarchy()
-        {
-            var foldoutMap = new Dictionary<Transform, GameObjectFoldout>();
-            var componentMap = new Dictionary<Transform, List<Component>>();
-
-            var components = prefab.GetComponentsInChildren<Component>(true);
-
-            rootFoldout.Clear();
-
-            // Group components by their GameObject (Transform)
-            foreach (var component in components.Where(comp => comp.GetType() != typeof(SchematicInstanceController)))
-            {
-                bool isSelected = Selection.activeGameObject == component.gameObject;
-
-                if (!componentMap.ContainsKey(component.transform))
-                    componentMap[component.transform] = new List<Component>();
-
-                componentMap[component.transform].Add(component);
-
-                if (schematicWindow != null)
-                {
-                    Selection.selectionChanged += () =>
-                    {
-                        foreach (var obj in Selection.gameObjects)
-                        {
-                            if (obj.GetComponents<MonoBehaviour>().Contains(component))
-                            {
-                                schematicWindow.ScrollToComponent(component);
-                            }
-                        }
-                    };
-                }
-            }
-
-            bool itemStep = false;
-
-            // Step 2: Build foldouts only for valid Transforms
-            foreach (var tf in prefab.GetComponentsInChildren<Transform>(true).Where(transform => transform != null && (transform != prefab.transform || includeSelf)))
-            {
-                var goFoldout = new GameObjectFoldout(tf.gameObject, schematicWindow == null ? editorWindow.name : schematicWindow.SchematicGUID + prefab.transform.GetRelativePath(tf), "Child " + tf.name, tf.name)
-                {
-                    style =
-                    {
-                        borderLeftWidth = 1,
-                        borderTopWidth = 1,
-                        borderLeftColor = Color.gray1 + new Color(0.05f, 0.05f, 0.05f),
-                        borderBottomColor = Color.gray1 + new Color(0.05f, 0.05f, 0.05f),
-                        borderTopColor = Color.gray1 + new Color(0.05f, 0.05f, 0.05f),
-                        borderRightColor = Color.gray1 + new Color(0.05f, 0.05f, 0.05f),
-                        unityFontStyleAndWeight = FontStyle.Bold
-                    }
-                };
-
-                goFoldout.OnRenameRequested += (string name) =>
-                {
-                    var tfPath = prefab.transform.GetRelativePath(tf);
-                    var copy = PrefabUtility.LoadPrefabContents(_assetPath);
-
-                    var tfCopy = copy.transform.Find(tfPath);
-                    if (tfCopy != null)
-                    {
-                        tfCopy.name = name;
-
-                        ApplyChangesToPrefabAsset(copy, goFoldout);
-                    }
-                };
-
-                goFoldout.Q(className: "unity-foldout__toggle").style.marginLeft = 0;
-                goFoldout.Q(className: "unity-foldout__toggle").style.marginRight = 0;
-
-                foldoutMap[tf] = goFoldout;
-
-                itemStep = !itemStep;
-                goFoldout.style.backgroundColor = itemStep
-                    ? Color.gray2
-                    : Color.gray2 - new Color(0.02f, 0.02f, 0.02f, 0.1f);
-
-                // === Add Child Button ===
-                var addChildButton = new Button(() =>
-                {
-                    var tfPath = prefab.transform.GetRelativePath(tf);
-                    var copy = PrefabUtility.LoadPrefabContents(_assetPath);
-
-                    var child = new GameObject("New Child");
-
-                    var tfCopy = copy.transform.Find(tfPath);
-                    if (tfCopy != null)
-                    {
-                        child.transform.SetParent(tfCopy, false);
-
-                        ApplyChangesToPrefabAsset(copy, goFoldout);
-                    }
-                })
-                {
-                    text = "+"
-                };
-                addChildButton.style.backgroundColor = SchematicGraphEditorWindow.ColorLookupFunctional["Create"];
-
-                addChildButton.RegisterCallback<MouseEnterEvent>(evt => addChildButton.style.backgroundColor = SchematicGraphEditorWindow.ColorLookupFunctional["CreateHighlight"]);
-                addChildButton.RegisterCallback<MouseLeaveEvent>(evt => addChildButton.style.backgroundColor = SchematicGraphEditorWindow.ColorLookupFunctional["Create"]);
-
-                addChildButton.style.position = Position.Absolute;
-                addChildButton.style.top = 0;      
-                addChildButton.style.right = 0;    
-                addChildButton.style.width = 20;
-                addChildButton.style.height = 20;
-
-                // === Remove This Button ===
-                var removeThisButton = new Button(() =>
-                {
-                    var tfPath = prefab.transform.GetRelativePath(tf);
-                    var copy = PrefabUtility.LoadPrefabContents(_assetPath);
-
-                    var tfCopy = copy.transform.Find(tfPath);
-                    if (tfCopy != null)
-                    {
-                        GameObject.DestroyImmediate(tfCopy.gameObject);
-
-                        ApplyChangesToPrefabAsset(copy, goFoldout);
-                    }
-                })
-                {
-                    text = "-"
-                };
-                removeThisButton.style.backgroundColor = SchematicGraphEditorWindow.ColorLookupFunctional["Remove"];
-
-                removeThisButton.RegisterCallback<MouseEnterEvent>(evt => removeThisButton.style.backgroundColor = SchematicGraphEditorWindow.ColorLookupFunctional["RemoveHighlight"]);
-                removeThisButton.RegisterCallback<MouseLeaveEvent>(evt => removeThisButton.style.backgroundColor = SchematicGraphEditorWindow.ColorLookupFunctional["Remove"]);
-
-                removeThisButton.style.position = Position.Absolute;
-                removeThisButton.style.top = 0;
-                removeThisButton.style.right = 20;
-                removeThisButton.style.width = 20;
-                removeThisButton.style.height = 20;
-
-                if (tf.parent != null && foldoutMap.TryGetValue(tf.parent, out var parentFoldout))
-                    parentFoldout.Add(goFoldout);
-                else
-                    rootFoldout.Add(goFoldout);
-
-                goFoldout.Add(addChildButton);
-                goFoldout.Add(removeThisButton);
-            }
-
-            // Add components and docks after the hierarchy is built
-            foreach (var kvp in componentMap)
-            {
-                var tf = kvp.Key;
-                var componentsOnObject = kvp.Value;
-
-                if (!foldoutMap.TryGetValue(tf, out var goFoldout)) continue;
-
-                var foldout = goFoldout.Foldout;
-
-                var ioGroup = new VisualElement();
-
-                ioGroup.style.paddingBottom = 4;
-                ioGroup.style.paddingLeft = 6;
-                ioGroup.style.paddingRight = 6;
-                ioGroup.style.backgroundColor = Color.gray2 - new Color(0.05f, 0.05f, 0.05f, 0.1f);
-                ioGroup.style.borderTopWidth = 1;
-                ioGroup.style.borderTopColor = new Color(0.5f, 0.5f, 0.5f, 0.3f);
-                ioGroup.style.borderBottomWidth = 1;
-                ioGroup.style.borderBottomColor = new Color(0.5f, 0.5f, 0.5f, 0.3f);
-                ioGroup.style.borderLeftWidth = 1;
-                ioGroup.style.borderLeftColor = new Color(0.5f, 0.5f, 0.5f, 0.3f);
-                ioGroup.style.borderRightWidth = 1;
-                ioGroup.style.borderRightColor = new Color(0.5f, 0.5f, 0.5f, 0.3f);
-
-                var componentLabel = new Label("Components");
-                componentLabel.style.color = Color.gray5;
-
-                VisualElement tabBar = new VisualElement();
-                tabBar.style.flexDirection = FlexDirection.Row;
-                tabBar.style.marginTop = 0;
-                tabBar.style.marginBottom = 0;
-
-                var tabScrollBar = new FlippedHorizontalScrollView();
-                tabScrollBar.Add(tabBar);
-
-                VisualElement tabContentContainer = new VisualElement()
-                {
-                    name = "Tab Content Container"
-                };
-                tabContentContainer.style.flexDirection = FlexDirection.Column;
-
-                string selectedTab = null;
-                var tabContentMap = new Dictionary<string, VisualElement>();
-
-                int compCount = 0;
-                if (true)
-                {
-                    foreach (var component in componentsOnObject)
-                    {
-                        var type = component.GetType();
-                        var typeName = ObjectNames.NicifyVariableName(type.Name);
-                        var icon = EditorGUIUtility.ObjectContent(null, type).image;
-
-                        schematicWindow.SchematicScope.Components.Add(GlobalObjectId.GetGlobalObjectIdSlow(prefab));
-
-                        // Create content container for this tab
-                        var content = new VisualElement { name = typeName };
-                        content.style.display = DisplayStyle.None;
-                        content.style.flexDirection = FlexDirection.Column;
-                        content.style.backgroundColor = Color.gray1;
-
-                        if (evMap.ContainsKey(tf) && evMap[tf].ContainsKey(type))
-                        {
-                            content.Add(evMap[tf][type]);
-                        }
-                        else
-                        {
-                            var (draw, dock) = IODockRegistry.GetComponentRenderer(type).Render(schematicWindow, component, prefab.transform);
-                            EventContainerRenderer.DrawDelayedEvents();
-
-                            var propertiesField = type.GetFields().Where(field => typeof(ScriptableObject).IsAssignableFrom(field.FieldType) && field.GetCustomAttributes()
-                                                                                                            .Any(attr => attr.GetType() == typeof(SchematicPropertiesAttribute))).FirstOrDefault();
-
-                            if ((draw || propertiesField != null))
-                            {
-                                if (dock == null)
-                                    dock = new VisualElement();
-
-                                dock.style.display = DisplayStyle.Flex;
-                                dock.style.flexDirection = FlexDirection.Column;
-                                dock.style.borderBottomWidth = 1;
-                                dock.style.borderTopWidth = 1;
-                                dock.style.borderLeftWidth = 1;
-                                dock.style.borderRightWidth = 1;
-                                dock.style.borderBottomColor = Color.gray4;
-                                dock.style.borderTopColor = Color.gray4;
-                                dock.style.borderLeftColor = Color.gray4;
-                                dock.style.borderRightColor = Color.gray4;
-
-                                if (propertiesField != null)
-                                {
-                                    var propertiesFoldout = new Foldout()
-                                    {
-                                        text = "Properties",
-                                        value = false,
-                                        style =
-                                        {
-                                            width = Length.Percent(100),
-                                            flexGrow = 0,
-                                            flexShrink = 0
-                                        }
-                                    };
-
-                                    var propertiesObject = (ScriptableObject)propertiesField.GetValue(component);
-
-                                    if (propertiesObject == null && propertiesField != null)
-                                    {
-                                        propertiesObject = SchematicAssetManager.Create(component, "", "", "Properties", propertiesField.FieldType);
-
-                                        var dirPath = Path.GetDirectoryName(_assetPath);
-
-                                        var tfPath = prefab.transform.GetRelativePath(tf);
-                                        var copy = PrefabUtility.LoadPrefabContents(_assetPath);
-
-                                        var tfCopy = copy.transform.Find(tfPath);
-                                        if (tfCopy != null)
-                                        {
-                                            var componentCopy = tfCopy.gameObject.GetComponent(type);
-                                            propertiesField.SetValue(componentCopy, propertiesObject);
-
-                                            ApplyChangesToPrefabAsset(copy, goFoldout, false);
-                                        }
-                                    }
-
-                                    var container = new IMGUIContainer(() =>
-                                    {
-                                        var soEditor = Editor.CreateEditor(propertiesObject);
-                                        soEditor.OnInspectorGUI();
-                                    });
-
-                                    propertiesFoldout.Add(container);
-                                    dock.Add(propertiesFoldout);
-                                }
-                            }
-                            else
-                            {
-                                dock.style.display = DisplayStyle.None;
-                                continue;
-                            }
-
-
-                            //content.Add(objectField);
-                            content.Add(dock);
-                        }
-
-
-                        tabContentContainer.Add(content);
-                        tabContentMap[typeName] = content;
-
-                        // === Component Tab ===
-                        var tabButton = new Button() { text = "", tooltip = typeName };
-
-                        tabButton.clickable = new Clickable(() => 
-                        { 
-                            // Hide others
-                            foreach (var tab in tabContentMap) tab.Value.style.display = DisplayStyle.None; 
-                            // Show selected
-                            content.style.display = DisplayStyle.Flex; selectedTab = typeName;
-
-                            foreach (var child in tabBar.Children()) 
-                            { 
-                                child.style.flexDirection = FlexDirection.Row; 
-                                child.style.alignContent = Align.Center; 
-                                child.style.alignItems = Align.Center; 
-                                child.style.backgroundColor = Color.gray3; 
-                                child.style.borderBottomWidth = 0;
-                                child.style.borderTopWidth = 0;
-                                child.style.borderLeftWidth = 1; 
-                                child.style.borderRightWidth = 1; 
-                                child.style.borderTopLeftRadius = 0; 
-                                child.style.borderTopRightRadius = 0; 
-                                child.style.borderLeftColor = Color.black;
-                                child.style.borderRightColor = Color.black;
-                            }
-                            content.style.flexDirection = FlexDirection.Column;
-
-                            tabButton.style.backgroundColor = Color.gray1; 
-                            tabButton.style.borderBottomWidth = 1; 
-                            tabButton.style.borderTopWidth = 2; 
-                            tabButton.style.borderLeftWidth = 2; 
-                            tabButton.style.borderRightWidth = 2;
-                            tabButton.style.borderBottomColor = Color.black;
-                            tabButton.style.borderTopColor = Color.gray4;
-                            tabButton.style.borderLeftColor = Color.gray4;
-                            tabButton.style.borderRightColor = Color.gray4;
-                            tabButton.style.borderTopLeftRadius = 4;
-                            tabButton.style.borderTopRightRadius = 4; 
-                        });
-
-                        if (compCount == 0) 
-                        {
-                            tabButton.style.backgroundColor = Color.gray1;
-                            tabButton.style.borderBottomWidth = 1;
-                            tabButton.style.borderTopWidth = 2;
-                            tabButton.style.borderLeftWidth = 2;
-                            tabButton.style.borderRightWidth = 2;
-                            tabButton.style.borderBottomColor = Color.black;
-                            tabButton.style.borderTopColor = Color.gray4;
-                            tabButton.style.borderLeftColor = Color.gray4; 
-                            tabButton.style.borderRightColor = Color.gray4; 
-                            tabButton.style.borderTopLeftRadius = 4;
-                            tabButton.style.borderTopRightRadius = 4; 
-                        };
-
-                        tabButton.style.flexDirection = FlexDirection.Row;
-                        tabButton.style.alignItems = Align.Center; 
-                        tabButton.style.paddingTop = 0;
-                        tabButton.style.paddingBottom = 0; 
-                        tabButton.style.paddingLeft = 0;
-                        tabButton.style.paddingRight = 0; 
-                        tabButton.style.marginRight = 0;
-                        tabButton.style.marginLeft = 0;
-                        tabButton.style.marginTop = 0;
-                        tabButton.style.marginBottom = 0;
-
-                        var img = new Image { image = icon };
-                        img.style.width = 16;
-                        img.style.height = 16;
-
-                        if (!schematicWindow.ShowComponentNames) 
-                        {
-                            img.style.marginBottom = 4; 
-                            img.style.marginLeft = 4; 
-                            img.style.marginTop = 4;
-                            img.style.marginRight = 4;
-                        }
-                        var label = new Label(typeName);
-                        label.style.unityFontStyleAndWeight = FontStyle.Bold;
-                        tabButton.Add(img);
-
-                        if (schematicWindow.ShowComponentNames)
-                            tabButton.Add(label);
-
-                        var removeComponentButton = new Button(() =>
-                        {
-                            var tfPath = prefab.transform.GetRelativePath(tf);
-                            var copy = PrefabUtility.LoadPrefabContents(_assetPath);
-                            var tfCopy = copy.transform.Find(tfPath);
-                            if (tfCopy != null)
-                            {
-                                var component = tfCopy.gameObject.GetComponent(type);
-
-                                SchematicEditorData.DeleteComponentData(copy, tfPath, type);
-
-                                Component.DestroyImmediate(component);
-
-                                ApplyChangesToPrefabAsset(copy, goFoldout);
-
-                            }
-                        })
-                        {
-                            text = "-"
-                        };
-
-                        removeComponentButton.style.minWidth = 10;
-                        removeComponentButton.style.minHeight = 10;
-                        removeComponentButton.style.maxWidth = 10;
-                        removeComponentButton.style.maxHeight = 10;
-
-                        removeComponentButton.style.backgroundColor = SchematicGraphEditorWindow.ColorLookupFunctional["Remove"];
-                        removeComponentButton.RegisterCallback<MouseEnterEvent>(evt => removeComponentButton.style.backgroundColor = SchematicGraphEditorWindow.ColorLookupFunctional["RemoveHighlight"]);
-                        removeComponentButton.RegisterCallback<MouseLeaveEvent>(evt => removeComponentButton.style.backgroundColor = SchematicGraphEditorWindow.ColorLookupFunctional["Remove"]);
-
-                        tabButton.Add(removeComponentButton);
-
-                        tabBar.Add(tabButton); compCount++; 
-                    }
-
-                    // === Add Component "+" Tab ===
-                    var addTabButton = new Button(() =>
-                    {
-                        var menu = new GenericMenu();
-                        var allTypes = AppDomain.CurrentDomain.GetAssemblies()
-                            .SelectMany(a => a.GetTypes())
-                            .Where(t =>
-                                typeof(MonoBehaviour).IsAssignableFrom(t) &&
-                                (
-                                    (typeof(DefaultIODockRenderer) != IODockRegistry.GetComponentRenderer(t).GetType()) ||
-                                    (t.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
-                                        .Any(f => typeof(ScriptableEventBase.IOBase).IsAssignableFrom(f.FieldType))) ||
-                                    (t.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
-                                        .Any(f => typeof(ScriptableEventBase.IOBase).IsAssignableFrom(f.PropertyType)))
-                                )
-                            );
-
-                        foreach (var type in allTypes)
-                        {
-                            var attr = type.GetCustomAttribute<SchematicComponentAttribute>();
-
-                            // If it has an attribute, use that path
-                            string menuPath = attr != null ? $"{attr.Path}" : "Unsorted/" + type.FullName;
-
-                            menu.AddItem(new GUIContent(menuPath), false, () =>
-                            {
-                                var tfPath = prefab.transform.GetRelativePath(tf);
-                                var copy = PrefabUtility.LoadPrefabContents(_assetPath);
-                                var tfCopy = copy.transform.Find(tfPath);
-
-                                if (tfCopy != null)
-                                {
-                                    var component = tfCopy.gameObject.AddComponent(type);
-
-                                    var ogComponent = tfCopy.gameObject.GetComponent(type);
-
-                                    ApplyChangesToPrefabAsset(copy, goFoldout);
-                                }
-                            });
-                        }
-
-
-                        menu.ShowAsContext();
-
-                    })
-                    {
-                        text = "+"
-                    };
-
-                    addTabButton.style.borderBottomLeftRadius = 0;
-                    addTabButton.style.borderBottomRightRadius = 0;
-                    addTabButton.style.borderTopLeftRadius = 0;
-                    addTabButton.style.borderTopRightRadius = 0;
-                    addTabButton.style.backgroundColor = SchematicGraphEditorWindow.ColorLookupFunctional["CreateHighlight"];
-
-                    tabBar.Add(addTabButton);
-                }
-
-                // Auto-select first tab
-                if (tabContentMap.Count > 0)
-                {
-                    var first = tabContentMap.Keys.First();
-                    tabContentMap[first].style.display = DisplayStyle.Flex;
-                    selectedTab = first;
-                    tabBar.ElementAt(0).AddToClassList("selected-tab");
-                }
-
-                foldout.Add(tabScrollBar);
-                foldout.Add(tabContentContainer);
-            }
-
-            PrefabRefreshUtility.ReimportAndResetPrefab(prefab);
-        }
-
+        PrefabRefreshUtility.ReimportAndResetPrefab(prefab);
 
         Add(container);
+    }
 
-        async void ApplyChangesToPrefabAsset(GameObject copy, GameObjectFoldout goFoldout, bool redraw = true)
+
+    public void RebuildHierarchy(Transform transform)
+    {
+        Clear();
+        var goFoldout = CreateGameObjectFoldout(transform, _schematicWindow, _editorWindow, _includeSelf);
+        Add(goFoldout);
+    }
+
+    /// <summary>
+    /// Creates a GameObjectFoldout with buttons for a given Transform.
+    /// </summary>
+    private VisualElement CreateGameObjectFoldout(Transform tf, SchematicGraphEditorWindow schematicWindow, EditorWindow editorWindow, bool includeSelf)
+    {
+        if (tf == null) return null;
+
+        var childListContainer = new VisualElement();
+
+        var childListFoldout = new LazyListFoldout(collection: tf.GetComponentsInImmediateChildren<Transform>(),
+                                                    className: "game-object",
+                                                    title: tf.name,
+
+                                                    onItemAdded: (object item) =>
+                                                    {
+                                                    },
+
+                                                    onItemRemoved: (object item) =>
+                                                    {
+                                                        var tfPath = _prefab.transform.GetRelativePath((Transform)item);
+                                                        var copy = PrefabUtility.LoadPrefabContents(_assetPath);
+
+                                                        var tfCopy = copy.transform.Find(tfPath);
+                                                        if (tfCopy != null)
+                                                        {
+                                                            GameObject.DestroyImmediate(tfCopy.gameObject);
+                                                            ApplyChangesToPrefabAsset(copy);
+                                                        }
+                                                    },
+
+                                                    // Setup Item/VisualElements
+                                                    createItemInstance: (Action<object> onCreationFinished) =>
+                                                    {
+                                                        var childObject = new GameObject().transform;
+
+                                                        Add(new InlineIdentifierEditor(popupRect: childListContainer.Q<Toggle>().WorldBoundToScreen(),
+                                                                                        identifierType: ListIdentifierType.Name,
+                                                                                        getOriginalValue: () => childObject.name,
+                                                                                        onFinishedEditting: (bool success, object value) =>
+                                                                                        {
+                                                                                            childObject.name = value.ToString();
+
+                                                                                            var tfPath = _prefab.transform.GetRelativePath(tf);
+                                                                                            var copy = PrefabUtility.LoadPrefabContents(_assetPath);
+
+                                                                                            var tfCopy = copy.transform.Find(tfPath);
+                                                                                            if (tfCopy != null)
+                                                                                            {
+                                                                                                childObject.SetParent(tfCopy, false);
+                                                                                                ApplyChangesToPrefabAsset(copy);
+                                                                                            }
+
+                                                                                            onCreationFinished?.Invoke(tfCopy);
+                                                                                        }));
+                                                    },
+
+                                                    createItemContent: (int index, object item) =>
+                                                    {
+                                                        var objectContainer = CreateGameObjectFoldout(((Transform)item), schematicWindow, editorWindow, includeSelf);
+
+                                                        var toggle = objectContainer.Q<Toggle>();
+                                                        //var toggleParent = toggle.parent;
+
+                                                        var headerContainer = new VisualElement()
+                                                        {
+                                                            style =
+                                                            {
+                                                                flexDirection = FlexDirection.Column,
+                                                                width =  Length.Percent(100)
+                                                            }
+                                                        };
+                                                        headerContainer.AddToClassList("child-header");
+
+                                                        var newToggle = new VisualElement()
+                                                        {
+                                                            style =
+                                                            {
+                                                                flexDirection = FlexDirection.Row
+                                                            }
+                                                        };
+                                                        var componentRow = new VisualElement()
+                                                        {
+                                                            style =
+                                                            {
+                                                                flexDirection = FlexDirection.Row
+                                                            }
+                                                        };
+
+                                                        componentRow.Add(CreateFoldoutContent(((Transform)item), schematicWindow));
+
+                                                        componentRow.Children().ElementAt(0).style.width = Length.Percent(100);
+
+                                                        foreach(var child in toggle.Children().ToList())
+                                                        {
+                                                            newToggle.Add(child);
+                                                        }
+
+                                                        headerContainer.Add(newToggle);
+                                                        headerContainer.Add(componentRow);
+
+                                                        toggle.Add(headerContainer);
+
+                                                        //toggleParent.Insert(0, headerContainer);
+
+                                                        return objectContainer;
+                                                    },
+
+                                                    getItemName: (object item) =>
+                                                    {
+                                                        return ((Transform)item) == null ? "" : ((Transform)item).name;
+                                                    },
+
+                                                    itemLabelClicked: (MouseDownEvent evt, object item, Action onItemEditted) =>
+                                                    {
+                                                        if (evt.clickCount == 2 && evt.button == 0)
+                                                        {
+                                                            var identifierEditor = new InlineIdentifierEditor(popupRect: childListContainer.Q<Toggle>().WorldBoundToScreen(),
+                                                                                                                identifierType: ListIdentifierType.Name,
+                                                                                                                getOriginalValue: () => { return ((Transform)item).name; },
+                                                                                                                onFinishedEditting: (bool change, object newValue) =>
+                                                                                                                {
+                                                                                                                    var childObject = ((Transform)item);
+
+                                                                                                                    var tfPath = _prefab.transform.GetRelativePath(childObject);
+                                                                                                                    var copy = PrefabUtility.LoadPrefabContents(_assetPath);
+
+                                                                                                                    var tfCopy = copy.transform.Find(tfPath);
+                                                                                                                    if (tfCopy != null)
+                                                                                                                    {
+                                                                                                                        tfCopy.name = newValue.ToString();
+                                                                                                                        ApplyChangesToPrefabAsset(copy);
+                                                                                                                    }
+
+                                                                                                                    onItemEditted?.Invoke();
+                                                                                                                });
+                                                        }
+                                                    },
+                                                    getListIcon: () => { return EditorGUIUtility.IconContent("GameObject Icon").image as Texture2D; } );
+
+
+        _foldouts.Add(childListFoldout);
+
+        childListContainer.Add(childListFoldout);
+
+        return childListContainer;
+    }
+
+    private VisualElement CreateFoldoutContent(Transform tf, SchematicGraphEditorWindow schematicWindow)
+    {
+        var componentsOnObject = tf.gameObject.GetComponents<MonoBehaviour>();
+
+        var foldout = new LazyFoldout(() =>
         {
-            PrefabUtility.SaveAsPrefabAsset(copy, _assetPath);
-            PrefabUtility.UnloadPrefabContents(copy);
+            var container = new VisualElement();
+            var ioGroup = new VisualElement();
 
-            AssetDatabase.Refresh();
+            TabView tabView = new("", "components", true, !schematicWindow.ShowComponentNames);
 
-            await EditorUtilities.NextEditorFrame();
-
-            if(redraw)
+            int compCount = 0;
+            foreach (var component in componentsOnObject)
             {
-                if (schematicWindow == null)
-                    rebuildHierarchy();
-                else
-                    schematicWindow.RedrawIODock();
+                var type = component.GetType();
+                var typeName = ObjectNames.NicifyVariableName(type.Name);
+                var icon = EditorGUIUtility.ObjectContent(null, type).image;
+
+                schematicWindow.SchematicGraph.Components.Add(GlobalObjectId.GetGlobalObjectIdSlow(_prefab));
+
+                tabView.AddTab(typeName, icon).UseFactory(() => CreateTabContent(component, type, tf, schematicWindow));
+
+                compCount++;
             }
 
-            if(goFoldout != null)
-                goFoldout.Foldout.value = true;
+            // Add "+" tab for adding components
+            CreateAddComponentButton(tabView, tf);
+
+            container.Add(tabView);
+
+            return container;
+        })
+        {
+            text = "components"
+        };
+
+        foldout.AddToClassList("component-foldout");
+
+        return foldout;
+    }
+
+    /// <summary>
+    /// Creates the actual content for a component tab.
+    /// </summary>
+    private VisualElement CreateTabContent(Component component, Type type, Transform tf, SchematicGraphEditorWindow schematicWindow)
+    {
+        var dock = new VisualElement();
+
+        if (evMap.ContainsKey(tf) && evMap[tf].ContainsKey(type))
+        {
+            return evMap[tf][type];
         }
 
+        var label = new Label(type.Name);
+        dock.Add(label);
+
+        var (draw, dockElement) = IODockRegistry.RenderObjectDock(type, schematicWindow, component, _prefab.transform);
+        SignalRenderer.DrawDelayedEvents();
+
+        FieldInfo propertiesField = GetPropertiesField(type);
+
+        if (draw || propertiesField != null)
+        {
+            if (dockElement == null)
+                dockElement = new VisualElement();
+
+            if (propertiesField != null)
+            {
+                var propertiesFoldout = CreatePropertiesFoldout(component, type, propertiesField, tf);
+                dockElement.Add(propertiesFoldout);
+            }
+
+            dock.Add(dockElement);
+        }
+
+        return dock;
+    }
+
+    /// <summary>
+    /// Gets the properties field from a component type using reflection (cached).
+    /// </summary>
+    private FieldInfo GetPropertiesField(Type type)
+    {
+        var fields = type.GetFields();
+        foreach (var field in fields)
+        {
+            if (!typeof(ScriptableObject).IsAssignableFrom(field.FieldType))
+                continue;
+
+            var attributes = field.GetCustomAttributes();
+            foreach (var attr in attributes)
+            {
+                if (attr.GetType() == typeof(SchematicPropertiesAttribute))
+                {
+                    return field;
+                }
+            }
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// Creates a foldout for component properties.
+    /// </summary>
+    private Foldout CreatePropertiesFoldout(Component component, Type type, FieldInfo propertiesField, Transform tf)
+    {
+        var propertiesFoldout = new Foldout()
+        {
+            text = "Properties",
+            value = false,
+            style =
+            {
+                width = Length.Percent(100),
+                flexGrow = 0,
+                flexShrink = 0
+            }
+        };
+
+        propertiesFoldout.AddManipulator(new ContextualMenuManipulator(evt =>
+        {
+            evt.menu.AppendAction("Reset Properties", _ =>
+            {
+                var newProperties = ScriptableObject.CreateInstance(propertiesField.FieldType);
+                newProperties.name = "Properties";
+                AssetDatabase.AddObjectToAsset(newProperties, _assetPath);
+                AssetDatabase.SaveAssets();
+
+                propertiesField.SetValue(component, newProperties);
+
+                var copy = PrefabUtility.LoadPrefabContents(_assetPath);
+                var tfPath = _prefab.transform.GetRelativePath(tf);
+                var tfCopy = copy.transform.Find(tfPath);
+                if (tfCopy != null)
+                {
+                    var componentCopy = tfCopy.gameObject.GetComponent(type);
+                    propertiesField.SetValue(componentCopy, newProperties);
+                    ApplyChangesToPrefabAsset(copy);
+                }
+            });
+        }));
+
+        var propertiesObject = (ScriptableObject)propertiesField.GetValue(component);
+
+        if (propertiesObject == null && propertiesField != null)
+        {
+            propertiesObject = SchematicAssetManager.Create(component, "", "", "Properties", propertiesField.FieldType);
+
+            var tfPath = _prefab.transform.GetRelativePath(tf);
+            var copy = PrefabUtility.LoadPrefabContents(_assetPath);
+
+            var tfCopy = copy.transform.Find(tfPath);
+            if (tfCopy != null)
+            {
+                var componentCopy = tfCopy.gameObject.GetComponent(type);
+                propertiesField.SetValue(componentCopy, propertiesObject);
+                ApplyChangesToPrefabAsset(copy);
+            }
+        }
+
+        var container = new IMGUIContainer(() =>
+        {
+            var soEditor = Editor.CreateEditor(propertiesObject);
+            soEditor.OnInspectorGUI();
+        });
+
+        propertiesFoldout.Add(container);
+        return propertiesFoldout;
+    }
+
+    /// <summary>
+    /// Creates the remove component button.
+    /// </summary>
+    private Button CreateRemoveComponentButton(Type type, Transform tf, GameObjectFoldout goFoldout)
+    {
+        var removeComponentButton = new Button(() =>
+        {
+            var tfPath = _prefab.transform.GetRelativePath(tf);
+            var copy = PrefabUtility.LoadPrefabContents(_assetPath);
+            var tfCopy = copy.transform.Find(tfPath);
+            if (tfCopy != null)
+            {
+                var component = tfCopy.gameObject.GetComponent(type);
+                SchematicEditorData.DeleteComponentData(copy, tfPath, type);
+                Component.DestroyImmediate(component);
+                ApplyChangesToPrefabAsset(copy);
+            }
+        })
+        {
+            text = "-"
+        };
+
+        removeComponentButton.style.minWidth = 10;
+        removeComponentButton.style.minHeight = 10;
+        removeComponentButton.style.maxWidth = 10;
+        removeComponentButton.style.maxHeight = 10;
+        removeComponentButton.style.backgroundColor = SchematicGraphEditorWindow.ColorLookupFunctional["Remove"];
+        removeComponentButton.RegisterCallback<MouseEnterEvent>(evt => removeComponentButton.style.backgroundColor = SchematicGraphEditorWindow.ColorLookupFunctional["RemoveHighlight"]);
+        removeComponentButton.RegisterCallback<MouseLeaveEvent>(evt => removeComponentButton.style.backgroundColor = SchematicGraphEditorWindow.ColorLookupFunctional["Remove"]);
+
+        return removeComponentButton;
+    }
+
+    /// <summary>
+    /// Creates the "Add Component" button with cached component type list.
+    /// </summary>
+    private void CreateAddComponentButton(TabView tabView, Transform tf)
+    {
+        tabView.AddTab("+").UseFactory(() =>
+        {
+            // Initialize component types cache if needed
+            if (!_componentTypesInitialized)
+            {
+                _availableComponentTypes = BuildAvailableComponentTypesList();
+                _componentTypesInitialized = true;
+            }
+
+            var menu = new GenericMenu();
+
+            foreach (var type in _availableComponentTypes)
+            {
+                var attr = type.GetCustomAttribute<SchematicComponentAttribute>();
+                string menuPath = attr != null ? $"{attr.Path}" : "Unsorted/" + type.FullName;
+
+                menu.AddItem(new GUIContent(menuPath), false, () =>
+                {
+                    var tfPath = _prefab.transform.GetRelativePath(tf);
+                    var copy = PrefabUtility.LoadPrefabContents(_assetPath);
+                    var tfCopy = copy.transform.Find(tfPath);
+
+                    if (tfCopy != null)
+                    {
+                        var component = tfCopy.gameObject.AddComponent(type);
+                        ApplyChangesToPrefabAsset(copy);
+                    }
+                });
+            }
+
+            menu.ShowAsContext();
+
+            return null;
+        });
+
+        var addTabButton = tabView;
+
+        addTabButton.AddToClassList("tab-add-component");
+    }
+
+    /// <summary>
+    /// Builds a cached list of available component types that can be added.
+    /// </summary>
+    private static List<Type> BuildAvailableComponentTypesList()
+    {
+        var allTypes = new List<Type>();
+        var assemblies = AppDomain.CurrentDomain.GetAssemblies();
+
+        foreach (var assembly in assemblies)
+        {
+            Type[] types;
+            try
+            {
+                types = assembly.GetTypes();
+            }
+            catch (ReflectionTypeLoadException e)
+            {
+                types = e.Types;
+            }
+
+            if (types == null) continue;
+
+            foreach (var type in types)
+            {
+                if (type == null) continue;
+                if (!typeof(MonoBehaviour).IsAssignableFrom(type)) continue;
+
+                bool include = false;
+
+                // Case 1: renderer override
+                var renderer = IODockRegistry.GetComponentRenderer(type);
+                if (renderer != null && renderer.GetType() != typeof(DefaultIODockRenderer))
+                {
+                    include = true;
+                }
+
+                // Case 2: field IOBase
+                if (!include)
+                {
+                    var fields = type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                    foreach (var field in fields)
+                    {
+                        if (typeof(SignalData).IsAssignableFrom(field.FieldType))
+                        {
+                            include = true;
+                            break;
+                        }
+                    }
+                }
+
+                // Case 3: property IOBase
+                if (!include)
+                {
+                    var properties = type.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                    foreach (var property in properties)
+                    {
+                        if (typeof(SignalData).IsAssignableFrom(property.PropertyType))
+                        {
+                            include = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (include)
+                    allTypes.Add(type);
+            }
+        }
+
+        return allTypes;
+    }
+
+    /// <summary>
+    /// Applies changes to the prefab asset and triggers rebuild if needed.
+    /// </summary>
+    private async void ApplyChangesToPrefabAsset(GameObject copy)
+    {
+        PrefabUtility.SaveAsPrefabAsset(copy, _assetPath);
+        PrefabUtility.UnloadPrefabContents(copy);
+
+        AssetDatabase.Refresh();
+
+        await EditorUtilities.NextEditorFrame();
+
+        PrefabRefreshUtility.ReimportAndResetPrefab(_prefab);
+        RebuildHierarchy(_prefab.transform);
     }
 }

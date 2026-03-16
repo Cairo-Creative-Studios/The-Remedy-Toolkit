@@ -12,12 +12,12 @@ public class FieldRenderer : VisualElement
     protected string _prefabPath;
     protected object _parent;
     protected object _value;
-    protected MemberWrapper _field;
+    protected FieldOrPropertyInfo _field;
     protected string _path;
     protected SchematicGraphEditorWindow _window;
     protected List<Action> _onModified;
 
-    public FieldRenderer(SchematicGraphEditorWindow window, UnityEngine.Object obj, object parent, object target, MemberWrapper fieldInfo, CustomFieldRendererAttribute attr, string path, List<Action> onModifed)
+    public FieldRenderer(SchematicGraphEditorWindow window, UnityEngine.Object obj, object parent, object target, FieldOrPropertyInfo fieldInfo, CustomFieldRendererAttribute attr, string path, List<Action> onModifed)
     {
         _window = window;
         _object = obj;
@@ -39,6 +39,14 @@ public class FieldRenderer : VisualElement
 
     protected virtual void Redraw()
     { }
+
+    protected virtual void OnModified()
+    {
+        foreach(var modCallback in _onModified)
+        {
+            modCallback?.Invoke();
+        }
+    }
 
     protected void AttemptPrefabRefresh()
     {

@@ -14,13 +14,13 @@ namespace Remedy.Weapons.Projectiles
         [Layout("Settings/Events", ELayout.Tab | ELayout.Collapse)]
         [LayoutStart("./Output")]*/
         [Tooltip("On hit anything collidable, passes the PhysicMaterial of the collider that was hit.")]
-        public ScriptableEvent OnHit;
+        public SignalData OnHit;
         [Tooltip("On hit the Target Object, passes the reference of the Target Object that was hit.")]
-        public ScriptableEvent OnHitTarget;
+        public SignalData OnHitTarget;
         [Tooltip("On Hit of anything collidable, and the projectile bounced off, passes the PhysicMaterial of the hit Collider")]
-        public ScriptableEvent OnRicochet;
+        public SignalData OnRicochet;
         [Tooltip("Called when this is destroyed")]
-        public ScriptableEvent OnDestroyed;
+        public SignalData OnDestroyed;
 
 /*        [Layout("Settings", ELayout.Tab | ELayout.Collapse)]
         [Layout("Settings/Component", ELayout.Tab | ELayout.Collapse)]

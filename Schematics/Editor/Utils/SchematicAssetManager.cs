@@ -280,6 +280,7 @@ namespace SchematicAssets
         private static T CreateInternal<T>(UnityEngine.Object obj, string propertyPath, string fieldName, string fileName, Type type) where T : ScriptableObject
         {
             var assetPath = GetAssetPath(obj, propertyPath, fileName, fieldName);
+
             EnsureFolderExists(Path.GetDirectoryName(assetPath));
 
             var existing = AssetDatabase.LoadAssetAtPath(assetPath, typeof(ScriptableObject)) as ScriptableObject;
@@ -297,11 +298,13 @@ namespace SchematicAssets
             ValidateFolders();
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
+
             return asset as T;
         }
 
         private static ScriptableObject CreateFromMemoryInternal(UnityEngine.Object obj, string propertyPath, string fieldName, UnityEngine.Object memoryObject)
         {
+
             var type = memoryObject.GetType();
 
             var assetPath = GetAssetPath(obj, propertyPath, memoryObject.name, fieldName);
@@ -322,6 +325,7 @@ namespace SchematicAssets
             ValidateFolders();
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
+
             return asset;
         }
 
@@ -352,6 +356,7 @@ namespace SchematicAssets
             }
 
             ValidateFolders();
+
             return results.ToArray();
         }
 

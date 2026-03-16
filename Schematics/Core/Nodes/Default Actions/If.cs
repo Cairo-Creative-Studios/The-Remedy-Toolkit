@@ -20,7 +20,7 @@ namespace Remedy.Schematics
         public bool TriggerOnce;
         private bool _triggered = false;
 
-        protected override void OnTrigger(bool awaiting = false)
+        protected override void OnTrigger(GameObject instance, bool awaiting = false)
         {
             bool ogValue = GetInputValue<bool>(nameof(Condition)) != Not;
             

@@ -1,20 +1,34 @@
+using Remedy.Schematics.Utils;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
 
+[SchematicComponent("Movement/3D/Character Motion Context")]
 [RequireComponent(typeof(Rigidbody))]
 [RequireComponent(typeof(SphereCollider))]
 [RequireComponent(typeof(CharacterRaycastContext))]
 public class CharacterMotionContext : MonoBehaviour
 {
     // IO
-    public ScriptableEventBoolean.Input JumpInput = new();
-    public ScriptableEventVector2.Input MoveInput = new();
-    public ScriptableEventFloat.Input StaminaUpdated = new();
+    [InputSignal]
+    [Parameter("Value", typeof(bool))]
+    public Signal<bool> JumpInput = new("JumpInput");
+    [InputSignal]
+    [Parameter("Value", typeof(Vector2))]
+    public Signal<Vector2> MoveInput = new("MoveInput");
+    [InputSignal]
+    [Parameter("Amount", typeof(float))]
+    public Signal<float> StaminaUpdated = new("StaminaUpdated");
+    [InputSignal]
+    [Parameter("Direction", typeof(Vector3))]
+    public Signal<Vector3> SetDirectionOfGravity = new("SetDirectionOfGravity");
 
-    public ScriptableEventBoolean.Output OnJump = new();
-    public ScriptableEventVector3.Output OnMoveOnGround = new();
-    public ScriptableEventBoolean.Output OnFall = new();
+    [OutputSignal]
+    public Signal OnJump = new("OnJump");
+    [OutputSignal]
+    public Signal<Vector3> OnMoveOnGround = new("OnMove");
+    [OutputSignal]
+    public Signal OnFall = new("OnFall");
 
     //Data
     [SchematicProperties]
@@ -38,12 +52,18 @@ public class CharacterMotionContext : MonoBehaviour
     [SerializeField]
     [HideInInspector]
     private bool _cached;
+    [SerializeField, HideInInspector]
     private Transform _transform;
+    [SerializeField, HideInInspector]
     private Rigidbody _rb;
     private CharacterRaycastContext _raycastContext;
+    [SerializeField, HideInInspector]
     private SphereCollider _collider;
+    [SerializeField, HideInInspector]
+    private Transform _gravReference;
 
     // state vars
+    private Vector3 _worldDirection = default;
     private Vector3 _velocity;
     private Vector3 _horizontalVelocity;
     private Vector3 _wallProjectedVelocity;
@@ -91,21 +111,26 @@ public class CharacterMotionContext : MonoBehaviour
             Debug.LogError("MotionContext: No camera found for motions to reference!");
 
         StaminaUpdated?.Subscribe(this, (float value) => _currentStamina = value);
+
+        SetDirectionOfGravity?.Subscribe(this, (Vector3 val) =>
+        {
+            _worldDirection = val;
+        });
     }
 
     private void OnDisable()
     {
         StaminaUpdated?.Unsubscribe(this);
         MoveInput.Unsubscribe(this);
+        SetDirectionOfGravity.Unsubscribe(this);
     }
 
     private void FixedUpdate()
     {
         _physicsStep = !_physicsStep;
-
         _rb.isKinematic = IsKinematic;
 
-        if(_physicsStep)
+        if(true)
         {
             _raycastContext.PerformGroundCast();
 
@@ -168,33 +193,41 @@ public class CharacterMotionContext : MonoBehaviour
                 _horizontalMovementDirection = _horizontalVelocity.normalized;
             }
         }
-        else
-        {
-            // reset velocity
-            var rbVelocity = _rb.linearVelocity;
-
-            _velocity = rbVelocity;
-
-            // reset forces
-            _forcesCount = 0;
-        }
-
-
         // apply velocity
         if (!_isResting)
         {
             _rb.WakeUp();
 
             // velocity overrides
+            if (_velocity.y < 0 && _raycastContext.GroundCastResult.TryGetClosestHit(out var hit))
+            {
+                if (hit.distance < Properties.MinDistanceFromGround)
+                {
+                    //_velocity.y = 0;
+                }
+            }
 
             _rb.linearVelocity = _velocity;
 
-            OnMoveOnGround?.Invoke(_horizontalVelocity);
+            OnMoveOnGround?.Invoke(this, _horizontalVelocity);
         }
         else
         {
             _rb.Sleep();
             _wallProjectedVelocity = _vec3Zero;
+        }
+/*        else
+        {*/
+            // reset velocity
+            //_velocity = _rb.linearVelocity;
+
+            // reset forces
+            _forcesCount = 0;
+        //}
+
+        for (int i = 0; i < _forces.Length; i++)
+        {
+            _forces[i] = _vec3Zero;
         }
     }
 
@@ -241,6 +274,7 @@ public class CharacterMotionContext : MonoBehaviour
         {
             if (_forcesCount < _forces.Length)
             {
+                force = RotateByGravityDirection(force);
                 _forces[_forcesCount] = force;
 
                 _forcesCount++;
@@ -248,6 +282,7 @@ public class CharacterMotionContext : MonoBehaviour
         }
         else
         {
+            force = RotateByGravityDirection(force);
             _overrideVelocity = force;
         }
     }
@@ -258,16 +293,19 @@ public class CharacterMotionContext : MonoBehaviour
         {
             if (_forcesCount < _forces.Length)
             {
+                force.y = 0;
+                force = RotateByGravityDirection(force);
                 _forces[_forcesCount] = force;
-                _forces[_forcesCount].y = 0;
 
                 _forcesCount++;
             }
         }
         else
         {
+            force.y = 0;
+            force = RotateByGravityDirection(force);
+
             _overrideVelocity = force;
-            _overrideVelocity.y = 0;
         }
     }
 
@@ -277,27 +315,33 @@ public class CharacterMotionContext : MonoBehaviour
         {
             if (_forcesCount < _forces.Length)
             {
-                _forces[_forcesCount] = _vec3Zero;
-                _forces[_forcesCount].y = force;
+                var appliedForce = _forces[_forcesCount];
+                appliedForce = _vec3Zero;
+                appliedForce.y = force;
+                appliedForce = RotateByGravityDirection(appliedForce);
+                _forces[_forcesCount] = appliedForce;
 
                 _forcesCount++;
             }
         }
         else
         {
-            _overrideVelocity = _vec3Zero;
-            _overrideVelocity.y = force;
+            var appliedForce = _vec3Zero;
+            appliedForce.y = force;
+            appliedForce = RotateByGravityDirection(appliedForce);
+
+            _overrideVelocity = appliedForce;
         }
     }
 
     public Vector3 PredictNextPosition()
     {
-        return _rb.position + _rb.linearVelocity * _dt;
+        return _rb.position + _rb.linearVelocity * _dt * _dt;
     }
 
     public void ApplyGravity()
     {
-        _velocity.y += Physics.gravity.y * _dt;
+        _velocity += RotateByGravityDirection(Physics.gravity * _dt);
     }
 
     /// <summary>
@@ -327,7 +371,7 @@ public class CharacterMotionContext : MonoBehaviour
         Vector3 desiredVel = (direction * desiredSpeed);
 
         Vector3 clampedVel = desiredVel.normalized * desiredSpeed;
-        Vector3 excess = HorizontalVelocity - clampedVel;
+        Vector3 excess = HorizontalVelocity - RotateByGravityDirection(clampedVel);
 
         Vector3 correction = -excess.normalized * desiredRateOfChange;
 
@@ -358,7 +402,7 @@ public class CharacterMotionContext : MonoBehaviour
     public void SpringTo(float groundYPosition, Vector3 position, float strength, float damper, float maxForce)
     {
         SpringHorizontally(position, strength, damper, maxForce);
-        SpringToY(groundYPosition, position.y, strength, damper, maxForce);
+        SpringToVertically(groundYPosition, position.y, strength, damper, maxForce);
     }
 
     /// <summary>
@@ -386,16 +430,12 @@ public class CharacterMotionContext : MonoBehaviour
     /// <param name="strength"></param>
     /// <param name="damper"></param>
     /// <param name="maxForce"></param>
-    public void SpringToY(float groundYPosition, float targetYPosition, float strength, float damper, float maxForce)
+    public void SpringToVertically(float groundYPosition, float targetYPosition, float strength, float damper, float maxForce)
     {
-        float distance = Mathf.Abs(Mathf.Abs(groundYPosition) - Mathf.Abs(_transform.position.y));
-        float heightError = distance - targetYPosition;
-        float velAlongNormal = Vector3.Dot(Vector3.down, Velocity);
-        float differenceForce = (heightError * strength) - (velAlongNormal * damper);
+        float heightError =  (groundYPosition + targetYPosition) - _transform.position.y;
+        float differenceForce = ((heightError * strength) - (Velocity.y * damper));
 
-        float finalForce = Mathf.Clamp((differenceForce) * _dt, -maxForce, maxForce);
-
-        ApplyVerticalForce(-finalForce);
+        ApplyVerticalForce(differenceForce);
     }
 
     public void TeleportToPosition(Vector3 position)
@@ -419,6 +459,7 @@ public class CharacterMotionContext : MonoBehaviour
     {
         return CameraTransform.TransformDirection(inputDirection);
     }
+
     public void WallCheckInMoveDirection()
     {
         _moveInput = TransformInputDirection(_moveInput);
@@ -437,7 +478,18 @@ public class CharacterMotionContext : MonoBehaviour
             _raycastContext = gameObject.GetComponent<CharacterRaycastContext>();
             _collider = gameObject.GetComponent<SphereCollider>();
 
-            _collider.sharedMaterial = Properties.PhysicsMaterial;
+            if(_gravReference == null)
+            {
+                if(transform.childCount > 0)
+                    _gravReference = transform.GetChild(0);
+                else
+                    _gravReference = new GameObject("Gravity Reference").transform;
+
+                _gravReference.parent = _transform;
+            }
+
+            if (Properties != null)
+                _collider.sharedMaterial = Properties.PhysicsMaterial;
 
             _rb.constraints = RigidbodyConstraints.FreezeRotation;
             _rb.useGravity = false;
@@ -455,8 +507,16 @@ public class CharacterMotionContext : MonoBehaviour
         if (_raycastContext.WallCastResult.TryGetClosestHit(out var closestWallHit))
         {
             _wallHitPoint = closestWallHit.point;
-            var _wallNormal = closestWallHit.normal;
-            _wallProjectedVelocity = Vector3.ProjectOnPlane(_horizontalVelocity, -_wallNormal);
+            _wallProjectedVelocity = Vector3.ProjectOnPlane(_horizontalVelocity, -closestWallHit.normal);
+
+            if (_wallProjectedVelocity.magnitude > 0.01f)
+            {
+                _raycastContext.PerformWallCast(_wallProjectedVelocity.normalized);
+                if (_raycastContext.WallCastResult.HasHit)
+                {
+                    _wallProjectedVelocity = _vec3Zero;
+                }
+            }
         }
         else
         {
@@ -465,6 +525,15 @@ public class CharacterMotionContext : MonoBehaviour
         }
     }
 
+    Vector3 RotateByGravityDirection(Vector3 inputForce)
+    {
+        if (_worldDirection == _vec3Zero) 
+            _worldDirection = Vector3.forward;
+
+        _gravReference.rotation = Quaternion.LookRotation(_worldDirection, Vector3.forward);
+        var result = _gravReference.TransformDirection(inputForce);
+        return result;
+    }
 
     private void OnDrawGizmos()
     {
@@ -483,7 +552,7 @@ public class CharacterMotionContext : MonoBehaviour
                 CustomGizmos.DrawArrow(_transform.position, _forces[i], _forces[i].magnitude * 2, new Color(1f, 1f, 0f, 0.3f));
         }
 
-        if (Properties.SlideOnWall && _raycastContext.WallCastResult.TryGetClosestHit(out var closestWallHit))
+        if (Properties != null && Properties.SlideOnWall && _raycastContext.WallCastResult.TryGetClosestHit(out var closestWallHit))
         {
             Gizmos.color = Color.green;
             Gizmos.DrawLine(_transform.position, _raycastContext.WallPosition);

@@ -8,12 +8,12 @@ namespace Remedy.CharacterControllers.Hover
     [SchematicComponent("Movement/3D/Flight and Hover Controller")]
     public class HoverController : MonoBehaviour
     {
-        [EventLink(typeof(CharacterMotionContext), nameof(CharacterMotionContext.JumpInput))]
-        public ScriptableEventBoolean.Input JumpInput => MotionContext.JumpInput;
-        [EventLink(typeof(CharacterMotionContext), nameof(CharacterMotionContext.MoveInput))]
-        public ScriptableEventVector2.Input MoveInput => MotionContext.MoveInput;
+        [SchematicEventLink(typeof(CharacterMotionContext), nameof(CharacterMotionContext.JumpInput))]
+        public Signal<bool> JumpInput => MotionContext.JumpInput;
+        [SchematicEventLink(typeof(CharacterMotionContext), nameof(CharacterMotionContext.MoveInput))]
+        public Signal<Vector2> MoveInput => MotionContext.MoveInput;
 
-        public ScriptableEventFloat.Input StaminaUpdated => MotionContext.StaminaUpdated;
+        public Signal<float> StaminaUpdated => MotionContext.StaminaUpdated;
 
         [SchematicProperties]
         public HoverControllerProperties Properties;
@@ -37,8 +37,8 @@ namespace Remedy.CharacterControllers.Hover
 
             Cache();
 
-            MoveInput?.Subscribe(this, Move);
-            JumpInput?.Subscribe(this, Jump);
+            MoveInput?.Subscribe(this, (Vector2 val) => Move(val));
+            JumpInput?.Subscribe(this, (bool val) => Jump(val));
 
             _currentHoverTime = 0f;
             _currentFallSpeed = 0f;

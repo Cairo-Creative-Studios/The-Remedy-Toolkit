@@ -18,22 +18,22 @@ namespace Remedy.CharacterControllers
         [Layout("Settings/Events", ELayout.Tab | ELayout.Collapse)]
         [LayoutStart("./Input")]*/
         [Tooltip("Vector3 Input for the Aim Direction, should be passed from the Camera Manager.")]
-        public ScriptableEventVector3.Input InputAim = new();
+        public SignalData InputAim;
         [Tooltip("Boolean Inputs that determine whether to Orient toward the Aim Direction.")]
-        public ScriptableEventBoolean.Input InputOrientToAim = new();
-        public ScriptableEventBoolean.Input OnGroundCast = new();
-        public ScriptableEventRaycastHit.Input OnGroundCastHit = new();
+        public SignalData InputOrientToAim;
+        public SignalData OnGroundCast;
+        public SignalData OnGroundCastHit;
 
         /*[Layout("Settings", ELayout.Tab | ELayout.Collapse)]
         [Layout("Settings/Events", ELayout.Tab | ELayout.Collapse)]
         [LayoutStart("./Output")]*/
         [Header("Events")]
-        public ScriptableEventBoolean.Output IsWallSliding = new();
-        public ScriptableEventBoolean.Output IsHovering = new();
-        public ScriptableEventBoolean.Output IsLedgeGrabbing = new();
-        public ScriptableEventBoolean.Output IsStrafing = new();
-        public ScriptableEventFloat.Output VerticalVelocity = new();
-        public ScriptableEventBoolean.Output IsOnGround = new();
+        public SignalData IsWallSliding;
+        public SignalData IsHovering;
+        public SignalData IsLedgeGrabbing;
+        public SignalData IsStrafing;
+        public SignalData VerticalVelocity;
+        public SignalData IsOnGround;
 
         /*[Layout("Settings", ELayout.Tab | ELayout.Collapse)]
         [Layout("Settings/Component", ELayout.Tab | ELayout.Collapse)]

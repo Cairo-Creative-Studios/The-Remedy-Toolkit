@@ -19,9 +19,9 @@ namespace Remedy.Weapons
         [LayoutStart("./Input")]*/
         [Tooltip("Device inputs that are passed to Equipped Weapons")]
         public WeaponInputEvent[] WeaponInputs;
-        public ScriptableEventInt.Input EquipInput;
+        public SignalData EquipInput;
         [Tooltip("The current Aim Forward, updated from the Camera Controller.")]
-        public ScriptableEventVector3.Input AimInput;
+        public SignalData AimInput;
 
         /*[Layout("Settings", ELayout.Tab | ELayout.Collapse)]
         [Layout("Settings/Component", ELayout.Tab | ELayout.Collapse)]
@@ -175,7 +175,7 @@ namespace Remedy.Weapons
         public WeaponEventType Event;
 
         [Tooltip("The ScriptableEvent that was triggered to invoke this Weapon Evnet")]
-        public ScriptableEventBoolean.Input InputEvent;
+        public SignalData InputEvent;
     }
 
     /// <summary>

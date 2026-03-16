@@ -32,9 +32,21 @@ namespace Remedy.Framework
                    a is GameObject g ? SystemManager.GetCachedComponent<T>(g) :
                    null;
         }
+        public static T GetCachedComponentInParents<T>(this UnityEngine.Object a) where T : Component
+        {
+            return a is Component c ? SystemManager.GetCachedComponentInParents<T>(c.gameObject) :
+                   a is GameObject g ? SystemManager.GetCachedComponentInParents<T>(g) :
+                   null;
+        }
+
         public static T GetCachedComponent<T>(this Component a) where T : Component
         {
             return a is Component c ? SystemManager.GetCachedComponent<T>(c.gameObject) :
+                   null;
+        }
+        public static T GetCachedComponentInParents<T>(this Component a) where T : Component
+        {
+            return a is Component c ? SystemManager.GetCachedComponentInParents<T>(c.gameObject) :
                    null;
         }
 
@@ -109,7 +121,22 @@ namespace Remedy.Framework
             return go.AddComponent<T>().GetCopyOf(toAdd) as T;
         }
 
+        public static List<T> GetComponentsInImmediateChildren<T>(this Transform parent)
+        {
+            var results = new List<T>();
 
+            for (int i = 0; i < parent.childCount; i++)
+            {
+                var child = parent.GetChild(i);
+
+                // Get component on the child itself
+                var comp = child.GetComponent<T>();
+                if (comp != null)
+                    results.Add(comp);
+            }
+
+            return results;
+        }
 
         public static class ExtendedResources
         {

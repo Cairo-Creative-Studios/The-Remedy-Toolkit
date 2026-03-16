@@ -1,163 +1,88 @@
 using UnityEngine;
-using System.Collections.Generic;
-using Remedy.Schematics.Utils;
 
 namespace Remedy.Schematics
 {
     [RequireComponent(typeof(ManagerHandshaker))]
     public class SchematicInstanceController : MonoBehaviour
     {
-        public List<SchematicVariable> variables;
-
-        ///[ReadOnly]
-        public GameObject Prefab;
-        [Tooltip("Whether the Object is a Singleton or not.")]
-        public bool Singleton = false;
-        public SchematicGraph[] SchematicGraphs = new SchematicGraph[0];
-
-        public SchematicScope Scope;
-
-        [ScriptableVariableList]
-        public List<ScriptableVariable> Variables = new();
-
-        public bool ServerOnly = false;
+        public SchematicGraph SchematicGraph;
 
         private void OnEnable()
         {
-            foreach (var graph in SchematicGraphs)
+            if(SchematicGraph == null)
             {
-                graph?.ReconstructPortConnections();
+                enabled = false;
+                return;
+            }
 
-                Assign(graph);
+            SchematicGraph.ReconstructPortConnections();
 
-                foreach (var oninvokeNode in graph.FlowOnInvokeCache)
+            Assign(SchematicGraph);
+
+            foreach (var oninvokeNode in SchematicGraph.FlowOnInvokeCache)
+            {
+                var isInvoking = false;
+
+                oninvokeNode.Signal.Subscribe(this, () =>
                 {
-                    var isInvoking = false;
-
-                    oninvokeNode.Event.Subscribe(this, (Union value) =>
+                    if (isInvoking) return;
+                    try
                     {
-                        if (isInvoking) return;
-                        try
-                        {
-                            isInvoking = true;
-                            oninvokeNode?.Trigger(value);
-                        }
-                        finally
-                        {
-                            isInvoking = false;
-                        }
-                    }, null);
+                        isInvoking = true;
+                        oninvokeNode.Trigger(gameObject);
+                    }
+                    finally
+                    {
+                        isInvoking = false;
+                    }
+                });
 
-                    oninvokeNode.UpdateCaches();
-                }
+                oninvokeNode.UpdateCaches();
             }
         }
 
         private void Start()
         {
-            foreach(var ScriptGraph in SchematicGraphs)
-            {
-                if (ScriptGraph != null)
-                {
-                    ScriptGraph.GameObject = gameObject;
-                    ScriptGraph?.TriggerEvent<OnCreate>();
-                }
-            }
+            SchematicGraph.TriggerEvent<OnCreate>(gameObject);
         }
 
         private void Update()
         {
-            foreach (var ScriptGraph in SchematicGraphs)
-            {
-                if (ScriptGraph != null)
-                {
-                    ScriptGraph.GameObject = gameObject;
-                    ScriptGraph?.TriggerEvent<OnUpdate>();
-                }
-            }
+            SchematicGraph.TriggerEvent<OnUpdate>(gameObject);
         }
 
         private void OnDestroy()
         {
-            foreach (var ScriptGraph in SchematicGraphs)
-            {
-                if (ScriptGraph != null)
-                {
-                    ScriptGraph.GameObject = gameObject;
-                    ScriptGraph?.TriggerEvent<OnDestroy>();
-                }
-            }
+            SchematicGraph.TriggerEvent<OnDestroy>(gameObject);
         }
 
         protected virtual void OnCollisionEnter(Collision collision)
         {
-            foreach (var ScriptGraph in SchematicGraphs)
-            {
-                if (ScriptGraph != null)
-                {
-                    ScriptGraph.GameObject = gameObject;
-                    ScriptGraph?.TriggerEvent<OnCollisionEnter>(collision.collider, collision.impulse, collision.relativeVelocity, collision.articulationBody, collision.transform, collision.gameObject);
-                }
-            }
+            SchematicGraph.TriggerEvent<OnCollisionEnter>(gameObject, collision.collider, collision.impulse, collision.relativeVelocity, collision.articulationBody, collision.transform, collision.gameObject);
         }
 
         protected virtual void OnCollisionExit(Collision collision)
         {
-            foreach (var ScriptGraph in SchematicGraphs)
-            {
-                if (ScriptGraph != null)
-                {
-                    ScriptGraph.GameObject = gameObject;
-                    ScriptGraph?.TriggerEvent<OnCollisionExit>(collision.collider, collision.impulse, collision.relativeVelocity, collision.articulationBody, collision.transform, collision.gameObject);
-                }
-            }
+            SchematicGraph.TriggerEvent<OnCollisionExit>(gameObject, collision.collider, collision.impulse, collision.relativeVelocity, collision.articulationBody, collision.transform, collision.gameObject);
         }
         protected virtual void OnTriggerEnter(Collider collider)
         {
-            foreach (var ScriptGraph in SchematicGraphs)
-            {
-                if (ScriptGraph != null)
-                {
-                    ScriptGraph.GameObject = gameObject;
-                    ScriptGraph?.TriggerEvent<OnCollisionEnter>(collider);
-                }
-            }
+            SchematicGraph.TriggerEvent<OnCollisionEnter>(gameObject, collider);
         }
 
         protected virtual void OnTriggerExit(Collider collider)
         {
-            foreach (var ScriptGraph in SchematicGraphs)
-            {
-                if (ScriptGraph != null)
-                {
-                    ScriptGraph.GameObject = gameObject;
-                    ScriptGraph?.TriggerEvent<OnCollisionExit>(collider);
-                }
-            }
+            SchematicGraph.TriggerEvent<OnCollisionExit>(gameObject, collider);
         }
 
         public void OnValidate()
         {
-            foreach (var ScriptGraph in SchematicGraphs)
-            {
-                if (ScriptGraph != null)
-                {
-                    ScriptGraph.GameObject = gameObject;
-                }
-            }
+            // Add OnValidate Event
         }
+
         public void Assign(SchematicGraph graph)
         {
-            if (graph == null) return;
-
-            foreach (var kvp in graph.PathsToChildInstances)
-            {
-                graph.OriginalToInstantiatedChildren[kvp.Value] = transform.Find(kvp.Key).gameObject;
-            }
-
-            foreach (var curGraph in SchematicGraphs)
-            {
-            }
+            this.SchematicGraph = graph;
         }
     }
 }

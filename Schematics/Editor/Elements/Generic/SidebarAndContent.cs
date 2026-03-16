@@ -12,22 +12,15 @@ public class SidebarAndContent : VisualElement
     private VisualElement _resizer;
     private ScrollView _scrollView;
 
-    public SidebarAndContent()
+    public SidebarAndContent(string name)
     {
         style.flexDirection = FlexDirection.Row;
         style.flexGrow = 1;
 
         // Sidebar Container 
-        var _sidebar = new VisualElement
-        {
-            style =
-                {
-                    width = 300,
-                    minHeight = Length.Percent(100),
-                    flexShrink = 0,
-                    backgroundColor = new Color(0.13f, 0.13f, 0.13f)
-                }
-        };
+        var _sidebar = new VisualElement();
+
+        _sidebar.AddToClassList(name + "-sidebar");
 
         _scrollView = new ScrollView(ScrollViewMode.Vertical);
         _scrollView.style.minHeight = Length.Percent(100);
@@ -41,9 +34,9 @@ public class SidebarAndContent : VisualElement
             {
                 width = 4,
                 cursor = new StyleCursor(UnityDefaultCursor.DefaultCursor(UnityDefaultCursor.CursorType.ResizeHorizontal)),
-                backgroundColor = new Color(0.2f, 0.2f, 0.2f),
             }
         };
+        _resizer.AddToClassList(name + "-divider");
 
         _scrollView.Add(SidebarContainer);
 
@@ -82,8 +75,8 @@ public class SidebarAndContent : VisualElement
             evt.StopPropagation();
         });
 
-        _resizer.RegisterCallback<MouseEnterEvent>(_ => _resizer.style.backgroundColor = new Color(0.3f, 0.3f, 0.3f));
-        _resizer.RegisterCallback<MouseLeaveEvent>(_ => _resizer.style.backgroundColor = new Color(0.2f, 0.2f, 0.2f));
+        _resizer.RegisterCallback<MouseEnterEvent>(_ => _resizer.AddToClassList(name + "-divider-hover"));
+        _resizer.RegisterCallback<MouseLeaveEvent>(_ => _resizer.RemoveFromClassList(name + "-divider-hover"));
 
     }
 }

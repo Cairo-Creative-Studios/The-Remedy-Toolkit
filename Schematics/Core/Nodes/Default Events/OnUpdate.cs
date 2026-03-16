@@ -10,12 +10,8 @@ using UnityEngine;
 namespace Remedy.Schematics
 {
     [Serializable]
-    [Node(Path = "Events/GameObject"), Tags("Object")]
+    [Node(Path = "Events"), Tags("Default")]
     public class OnUpdate : SchematicEventNode
     {
-        protected override void OnTrigger()
-        {
-            base.OnTrigger();
-        }
     }
 }

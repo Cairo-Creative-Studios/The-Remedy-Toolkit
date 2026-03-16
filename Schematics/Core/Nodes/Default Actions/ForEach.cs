@@ -23,7 +23,7 @@ namespace Remedy.Schematics
         [Output("This")]
         public object CurrentItem;
 
-        protected override void OnTrigger(bool awaiting = false)
+        protected override void OnTrigger(GameObject instance, bool awaiting = false)
         {
             Items = GetInputValue<List<Union>>("Pool");
             _processChildren = false;
@@ -32,7 +32,7 @@ namespace Remedy.Schematics
             {
                 SetOutputValue(nameof(CurrentItem), Items[i]);
                 SetOutputValue(nameof(Index), i);
-                ProcessChildren();
+                ProcessChildren(instance);
             }
         }
     }

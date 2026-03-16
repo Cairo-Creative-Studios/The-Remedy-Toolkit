@@ -15,11 +15,11 @@ namespace Remedy.Schematics
         [Input("Wait Time", typeof(float))]
         public float waitTime = 1f;
 
-        protected override void OnTrigger(bool awaiting = false)
+        protected override void OnTrigger(GameObject instance, bool awaiting = false)
         {
             _processChildren = false;
             //await UniTask.Delay((int)(GetInputValue<float>("Wait Time") * 1000));
-            ProcessChildren();
+            ProcessChildren(instance);
         }
     }
 }

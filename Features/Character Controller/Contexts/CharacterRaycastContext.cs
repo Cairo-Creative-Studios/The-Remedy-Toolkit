@@ -3,8 +3,8 @@ using UnityEngine;
 
 public class CharacterRaycastContext : MonoBehaviour
 {
-    public ScriptableEventVector3.Input CheckForWall;
-    public ScriptableEventRaycastHits.Output OnHitWall;
+    public SignalData CheckForWall;
+    public SignalData OnHitWall;
 
     public bool IsGrounded = false;
     public Vector3 GroundPosition = default;

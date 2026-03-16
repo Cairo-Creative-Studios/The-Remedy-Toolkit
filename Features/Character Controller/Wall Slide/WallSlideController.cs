@@ -1,4 +1,6 @@
 using Remedy.Framework;
+using Remedy.Schematics.Utils;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Remedy.CharacterControllers.WallSlide
@@ -10,13 +12,13 @@ namespace Remedy.CharacterControllers.WallSlide
     {
         public Rigidbody Rigidbody => gameObject.GetCachedComponent<Rigidbody>();
 
-        [EventLink(typeof(CharacterMotionContext), nameof(CharacterMotionContext.JumpInput))]
-        public ScriptableEventBoolean.Input JumpInput => _motionContext.JumpInput;
-        [EventLink(typeof(CharacterMotionContext), nameof(CharacterMotionContext.MoveInput))]
-        public ScriptableEventVector2.Input MoveInput => _motionContext.MoveInput;
+        [SchematicEventLink(typeof(CharacterMotionContext), nameof(CharacterMotionContext.JumpInput))]
+        public Signal<bool> JumpInput => _motionContext.JumpInput;
+        [SchematicEventLink(typeof(CharacterMotionContext), nameof(CharacterMotionContext.MoveInput))]
+        public Signal<Vector2> MoveInput => _motionContext.MoveInput;
 
-        public ScriptableEvent.Output OnWallJump = new();
-        public ScriptableEvent.Output OnWallSlideExitted = new();
+        public Signal OnWallJump;
+        public Signal<bool> OnWallSlideExitted;
 
         [SchematicProperties]
         public WallSlideControllerProperties Properties;
@@ -39,7 +41,7 @@ namespace Remedy.CharacterControllers.WallSlide
             _cached = false;
             Cache();
 
-            JumpInput?.Subscribe(this, Jump);
+            JumpInput?.Subscribe(this, (bool val) => Jump(val));
         }
 
         private void OnDisable()
@@ -58,7 +60,7 @@ namespace Remedy.CharacterControllers.WallSlide
             }
             else
             {
-                OnWallSlideExitted?.Invoke(false);
+                OnWallSlideExitted?.Invoke(this, false);
             }
         }
 
@@ -70,7 +72,7 @@ namespace Remedy.CharacterControllers.WallSlide
                 Vector3 jumpDir = (lateralVelocity * Properties.JumpLateralInputInfluence + _lastWallHit.normal).normalized;
                 _motionContext.ApplyForce(jumpDir * Properties.JumpHorizontalForce + Vector3.up * Properties.JumpVerticalForce, true);
                 
-                OnWallJump?.Invoke(default);
+                OnWallJump?.Invoke(this);
             }
         }
 

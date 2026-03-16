@@ -14,7 +14,7 @@ namespace Remedy.Schematics
         [Input("Position")]
         public Vector3 NewPosition;
 
-        protected override void OnTrigger(bool awaiting = false)
+        protected override void OnTrigger(GameObject instance, bool awaiting = false)
         {
             Target = GetInputValue<GameObject>("Target");
             Position = GetInputValue<Vector3>("Position");

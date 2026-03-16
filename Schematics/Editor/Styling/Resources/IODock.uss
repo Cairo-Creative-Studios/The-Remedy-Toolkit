@@ -1,0 +1,616 @@
+/* Main Window */
+.canvasViewTitle
+{
+	color: #8899ff !important;
+}
+
+.canvas-overlay
+{
+	background-image: url("Textures/canvas-gradient.png");
+}
+
+.iodock 
+{
+	background-color: #010101;
+	background-image: url("Textures/io-gradient.png");
+}
+
+
+/* --- Sidebar and Content --- */
+.schematic-snc-sidebar
+{
+    width: 300px;
+    min-height : 100%;
+    background-color : #080809;
+}
+
+.schematic-snc-divider
+{
+    background-color : #3377aa;
+	background-image: url("Textures/io-gradient.png");
+}
+
+.schematic-snc-divider-hover
+{
+    background-color : #676767;
+}
+
+
+/* --- Lists --- */
+LazyFoldout
+{
+	border-color: gray;
+	overflow: hidden;
+	border-right-width: 0px;
+}
+
+LazyListFoldout
+{
+    background-color: #151515;
+	background-image: url("Textures/list-gradient.png");
+
+	border-color: black;
+
+	border-right-width: 0px;
+}
+
+.list-content
+{
+	margin-right: 8px;
+	border-color: rgba(1,1,1,0.25);
+	border-width: 1px;
+	padding-bottom: 8px;
+}
+
+.list-item-header
+{
+	padding: 4px;
+}
+
+.list-item-content
+{
+	margin-left: 0px;
+	border-color: rgba(255,255,255,0.2);
+	overflow:hidden;
+	padding: 1px;
+}
+
+.list-customizationbar
+{
+	background-image: url("Textures/customization-bar-gradient.png");
+	padding: 4px;
+	padding-right: 0px;
+}
+
+.list-button-add
+{
+	background-color: #777799;
+	background-image: url("Textures/button-gradient.png");
+}
+
+.list-button-add-hover
+{
+	background-color: #aaaacc;
+	background-image: url("Textures/button-gradient.png");
+}
+
+.list-button-remove
+{
+	background-color: #a00000;
+	background-image: url("Textures/button-gradient.png");
+	position: absolute;
+	top: -1px;
+	right: 0px;
+	width: 16px;
+	height: 16px;
+}
+
+.list-button-remove-hover
+{
+	background-color: #ff0000;
+	background-image: url("Textures/button-gradient.png");
+}
+
+.list-header
+{
+	background-image: url("Textures/list-label-gradient.png");
+}
+
+.list-toggle VisualElement
+{
+	margin-left: 0px;
+}
+
+.list-label
+{
+	padding-right: 14px;
+}
+
+.list-toggle
+{
+	margin: 0px;
+	margin-right: 4px;
+	border-top-width: 1px;
+	border-left-width: 1px;
+	border-color: rgba(255,255,255,0.2);
+}
+
+.list-toggle #unity-checkmark
+{
+	background-image: url("Textures/list-foldout-toggle.png");
+	background-size: 100% 100%;
+
+	margin-right: 0px;
+
+	-unity-slice-left : 0;
+	-unity-slice-top : 0;
+
+	max-width: 16px;
+	max-height: 16px;
+}
+
+LazyFoldout Toggle
+{
+	margin: 0px;
+}
+
+LazyFoldout #unity-checkmark
+{
+	background-image: url("Textures/list-foldout-toggle-2.png");
+	background-size: 100% 100%;
+	-unity-slice-left : 0;
+	-unity-slice-top : 0;
+	margin-right: 0px;
+
+	max-width: 16px;
+	max-height: 16px;
+}
+
+
+.list-toggle-container
+{
+	margin-left: 0px;
+	margin-right: 0px;
+	background-image: url("Textures/list-header-gradient.png");
+	padding:4px;
+}
+
+
+.list-item-0
+{
+    background-color: #494949;
+	background-image: url("Textures/list-gradient.png");
+}
+
+.list-item-1
+{
+    background-color: #797979;
+	background-image: url("Textures/list-gradient.png");
+}
+
+.list-container-1-0
+{
+    background-color: #222222;
+	background-image: url("Textures/list-gradient.png");
+}
+
+.list-container-1-1
+{
+    background-color: #323232;
+	background-image: url("Textures/list-gradient.png");
+}
+
+.child-header
+{
+	background-image: url("Textures/list-header-gradient.png");
+}
+
+.list-header
+{
+	width: 100%;
+	padding: 0px;
+}
+
+.list-customizationbar-game-object
+{
+	height: 0px;
+	padding: 0px;
+}
+
+.list-customizationbar-game-object
+{
+	height: 0px;
+	padding: 0px;
+}
+
+.list-button-game-object-add
+{
+	position:absolute; 
+	top: 0px;
+	right: 0px;
+	width: 16px;
+	height: 16px;
+}
+
+.list-container-game-object
+{
+    background-color: #252525;
+	border-width: 0px;
+}
+
+.list-content-game-object
+{
+	margin-right: 0px;
+	border-right-width: 0px;
+	border-top-width: 0px;
+	border-bottom-width: 0px;
+	padding:0px;
+	border-top-color: black;
+}
+.list-item-game-object
+{
+	border-width: 0px;
+	padding: 0px;
+	background-color: #171737;
+}
+.list-toggle-game-object
+{
+	margin-right:0px;
+}
+
+.child-header
+{
+	background-color: #373737;
+}
+
+
+/* --- TabView --- */
+.scope-tab-scrollbar
+{
+	background-color: #212121;
+	background-image: url("Textures/list-gradient.png");
+}
+.scope-tab
+{
+	background-color: #676767;
+	background-image: url("Textures/list-gradient.png");
+}
+.scope-tab-selected
+{
+	background-color: #000000;
+	background-image: url("Textures/list-gradient.png");
+	
+	border-top-color: #3377aa;
+	border-left-color: #3377aa;
+	border-right-color: #3377aa;
+}
+
+.scope-tab-label
+{
+	color: #8899a0;
+	font-size: 16px;
+	max-width: 50%;
+}
+
+.components-tab-scrollbar
+{
+}
+
+.components-tabbar
+{
+	background-color: rgba(0,0,0,0.2);
+}
+
+.components-tab-content
+{
+	background-color: #000000;
+	padding: 4px;
+	padding-right: 0px;
+}
+
+.components-tab
+{
+	padding: 4px;
+	background-color: #474747;
+}
+
+.components-tab-selected
+{
+	background-color: #000000;
+	height: 110%;
+}
+
+.tab-add-component
+{
+	margin-left:16px;
+}
+
+.component-foldout
+{
+	margin: 2px;
+	margin-left: 8px;
+	background-color: rgba(0,0,0,0.2);
+	border-width: 1px;
+	
+	border-color: rgba(0,0,0,0.2);
+	background-image:url("Textures/canvas-gradient.png");
+	
+	margin-bottom: 8px;
+}
+
+.component-foldout TabView
+{
+	margin-left: 0px;
+	margin: 4px;
+}
+
+
+
+/* --- Event container --- */
+EventContainerRenderer
+{
+	border-width: 2px;
+	border-color: rgba(0,0,0,0.5);
+	background-color: rgba(255,255,255,0.25);
+}
+
+.event-container
+{
+	background-image: url("Textures/title-gradient.png");
+	padding: 4px;
+	border-radius: 4px;
+	overflow: hidden;
+}
+
+.event-container-input
+{
+	background-color: rgba(0,0,75,0.25);
+}
+.event-container-output
+{
+	background-color: rgba(75,0,0,0.25);
+}
+
+
+.event-type-dropdown
+{
+	background-color: rgba(0,0,0,0.25);
+}
+
+.event-name
+{
+	background-color: rgba(0,0,0,0.1);
+	margin-bottom: 4px;
+}
+
+.even-link-label
+{
+	color: blue;
+}
+
+.event-name-hover
+{
+	background-color: rgba(0,0,0,0.65);
+}
+
+.event-parameter-container
+{
+	background-image: url("Textures/title-gradient.png");
+	opacity: 0.8;
+}
+
+.event-parameter-container-hover
+{
+	background-image: url("Textures/title-gradient.png");
+	opacity: 1;
+}
+
+.list-toggle-event-parameters
+{
+	background-color: rgba(0,0,0,0.1);
+	background-image: none;
+	margin-right: 0px;
+	color: #aaa;
+}
+.list-toggle-event-parameters VisualElement
+{
+	background-image: none;
+}
+
+
+.list-customizationbar-event-parameters
+{
+	display: none;
+}
+.list-content-event-parameters
+{
+	padding-bottom:0px;
+	border-bottom:0px;
+	border-top:0px;
+	padding: 2px;
+	background-color: rgba(0,0,0,0.25);
+	padding: 4px;
+}
+.list-item-event-parameters
+{
+	padding-bottom:0px;
+	padding-top: 0px;
+	border-bottom:0px;
+	border-top:0px;
+	border-radius:8px;
+	background-color: rgba(0,0,0,1);
+}
+
+.list-item-event-parameters PopupField
+{
+	border-radius:8px;
+}
+.list-item-event-parameters TextField
+{
+	border-radius:8px;
+}
+
+
+.list-content-event-parameters
+{
+	margin-right: 0px;
+	border-width: 0px;
+	border-radius: 8px;
+}
+.list-container-event-parameters
+{
+	border-top:0px;
+	background-image: none;
+	background-color: rgba(0,0,0,0);
+}
+
+	
+/* --- Nodes --- */
+.node-On-Signal-Received
+{
+	width: 160px;
+	height: 96px;
+	border-width: 0px;
+	background-image: url("Textures/graph-output.png");
+	background-size: 35% 50%;
+	background-position: 12px 12px;
+}
+
+.node-On-Signal-Received VisualElement
+{
+	overflow: visible;
+	border-width: 0px;
+}
+
+.node-On-Signal-Received #node-border 
+{
+	opacity: 1;
+	height: 96px;
+	border-width: 1px;
+	border-color: rgba(255,155,155,0.75);
+	background-color: rgba(255,255,255,0.2);
+	background-image: url("Textures/io-graph-gradient.png");
+
+}
+
+.node-On-Signal-Received #node-border #title
+{
+	opacity: 0;
+}
+
+.node-On-Signal-Received #node-border #output
+{
+	position:absolute;
+	top:-20px;
+	right: 0px;
+	display: flex;
+	flex-direction: column;
+	justify-content: space-between;
+	align-items: stretch;
+}
+
+.node-On-Signal-Received #node-border #contents #top #output 
+{
+	opacity: 1;
+	background-image: none;
+	background-color: rgba(0,0,0,0);
+}
+
+
+.node-On-Signal-Received #node-border #contents #top #output PortView
+{
+	opacity: 1;
+	background-image: none;
+	background-color: rgba(0,0,0,0);
+	margin-left: 16px;
+}
+
+.node-On-Signal-Received #node-border VisualElement
+{
+	opacity: 1;
+	background-image: none;
+	background-color: rgba(0,0,0,0);
+	overflow: visible;
+}
+
+.node-On-Signal-Received #node-border #divider
+{
+	display:none;
+}
+
+.node-On-Signal-Received #node-border #collapsible-area
+{
+	position:absolute;
+	width:100%;
+	height:100%;
+}
+.node-On-Signal-Received #node-border #extension
+{
+	position:absolute;
+	width:100%;
+	height:24px;
+	bottom: 4px;
+}
+
+.node-On-Signal-Received #node-border ObjectField Label
+{
+	display:none;
+}
+
+.node-On-Signal-Received #node-border ObjectFieldDisplay Label
+{
+	display:flex;
+    -unity-font-style: bold;
+}
+.node-On-Signal-Received #node-border ObjectField 
+{
+	position:absolute;
+	width:100%;
+	height: 100%;
+}
+.node-On-Signal-Received #node-border ObjectField VisualElement
+{
+	position:absolute;
+	width:134px;
+	background-image:url("Textures/io-gradient.png");
+	border-width:1px;
+	border-color:gray;
+}
+
+.node-On-Signal-Received #node-border ObjectField
+{
+}
+
+.node-On-Signal-Received #node-border ObjectField ObjectFieldSelector
+{
+	display: none;
+}
+
+.node-On-Signal-Received #collapsible-area
+{
+	opacity: 1;
+	background-image: none;
+	background-color: rgba(0,0,0,0);
+}
+
+.node-On-Signal-Received #collapsible-area VisualElement
+{
+	opacity: 1;
+	background-image: none;
+	background-color: rgba(0,0,0,0);
+}
+
+Button
+{
+	padding: 2px;
+}
+
+TextElement
+{
+	margin-left: 0px;
+}
+
+.-tab-selected
+{
+	background-color: black;
+}

@@ -58,28 +58,28 @@ namespace Remedy.Animation
         [Serializable]
         public class TriggerEvent
         {
-            public ScriptableEvent OnEvent;
+            public SignalData OnEvent;
             //[AnimatorParam(AnimatorControllerParameterType.Trigger)]
             public int ParameterName;
         }
         [Serializable]
         public class BooleanEvent
         {
-            public ScriptableEventBoolean OnEvent;
+            public SignalData OnEvent;
             //[AnimatorParam(AnimatorControllerParameterType.Bool)]
             public int ParameterName;
         }
         [Serializable]
         public class FloatEvent
         {
-            public ScriptableEventFloat OnEvent;
+            public SignalData OnEvent;
             //[AnimatorParam(AnimatorControllerParameterType.Float)]
             public int ParameterName;
         }
         [Serializable]
         public class Vector2Event
         {
-            public ScriptableEventVector2 OnEvent;
+            public SignalData OnEvent;
             //[AnimatorParam(AnimatorControllerParameterType.Float)]
             [Tooltip("The Parameter that is set to the X axis value of the Vector2 passed from the Event")]
             public int XParameter;

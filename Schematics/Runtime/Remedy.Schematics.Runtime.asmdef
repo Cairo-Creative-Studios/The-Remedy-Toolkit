@@ -1,0 +1,18 @@
+{
+    "name": "Remedy.Schematics.Runtime",
+    "rootNamespace": "",
+    "references": [
+        "GUID:6082862122ef11a49bf208ee4ec62519",
+        "GUID:0a22d72520a82174ab746de6d8876564",
+        "GUID:9cef1c0784dad074282847b193c0d47b"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

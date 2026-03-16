@@ -1,7 +1,12 @@
 ﻿using BlueGraph;
 using BlueGraph.Editor;
+using log4net.DateFormatter;
+using PlasticGui.Configuration.CloudEdition.Welcome;
+using Remedy.Framework;
 using Remedy.Schematics;
+using Remedy.Schematics.Utils;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -11,7 +16,7 @@ using UnityEditor;
 using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
-using static ScriptableEventBase;
+using static SignalData;
 
 /// <summary>
 /// A custom Unity editor window for editing flow graphs and schematics.
@@ -23,7 +28,7 @@ public class SchematicGraphEditorWindow : GraphEditorWindow
     /// <summary>
     /// Manages schematic editor events and handles event reference validation and saving.
     /// </summary>
-    internal SchematicEditorEventManager EventManager;
+    internal SignalManager SignalManager;
     internal string GlobalPath
     {
         get
@@ -33,19 +38,20 @@ public class SchematicGraphEditorWindow : GraphEditorWindow
             return path;
         }
     }
-       
+
     #region Editing Objects
     /// <summary>
     /// The schematic scope that contains the graph being edited.
     /// This is the main container for the schematic data.
     /// </summary>
-    [HideInInspector]
-    public SchematicScope SchematicScope;
+    /*[HideInInspector]
+    public SchematicScope SchematicScope;*/
     /// <summary>
     /// Gets the schematic graph from the current schematic scope.
     /// Returns null if no schematic scope is assigned.
     /// </summary>
-    public SchematicGraph SchematicGraph => SchematicScope == null ? null : SchematicScope.Graph;
+    /*public SchematicGraph SchematicGraph => SchematicScope == null ? null : SchematicScope.Graph;*/
+    public SchematicGraph SchematicGraph;
     /// <summary>
     /// Gets the prefab associated with the current schematic graph.
     /// This prefab represents the GameObject hierarchy that the schematic operates on.
@@ -158,7 +164,7 @@ public class SchematicGraphEditorWindow : GraphEditorWindow
     /// Maps scriptable events to their associated components for quick lookup during node operations.
     /// This cache improves performance when displaying component relationships in the UI.
     /// </summary>
-    internal Dictionary<ScriptableEventBase, List<UnityEngine.Object>> TargetEventMap = new();
+    internal Dictionary<SignalData, List<UnityEngine.Object>> TargetEventMap = new();
     /// <summary>
     /// Maps components to their corresponding ObjectField UI elements for efficient UI updates.
     /// </summary>
@@ -166,11 +172,11 @@ public class SchematicGraphEditorWindow : GraphEditorWindow
     /// <summary>
     /// Cached list of all invoke nodes in the current graph for performance optimization.
     /// </summary>
-    private List<InvokeScriptableEvent> _cachedInvokeNodes = new();
+    private List<SendSignalNode> _cachedInvokeNodes = new();
     /// <summary>
     /// Cached list of all on-invoke nodes in the current graph for performance optimization.
     /// </summary>
-    private List<OnScriptableEventInvoked> _cachedOnInvokeNodes = new();
+    private List<OnSignalReceivedNode> _cachedOnInvokeNodes = new();
     /// <summary>
     /// Static collection of all editor windows that need to be saved.
     /// This ensures proper cleanup and data persistence across multiple editor instances.
@@ -183,8 +189,108 @@ public class SchematicGraphEditorWindow : GraphEditorWindow
     /// <summary>
     /// List of processed IO bases to prevent duplicate processing during graph operations.
     /// </summary>
-    private List<IOBase> _processed = new();
+    /*private List<IOBase> _processed = new();*/
+
+    internal static ProcessProfiler Profiler = new ProcessProfiler();
+
+    private static List<(string name, ScriptableObject data, Type type)> _gs;
+    private static List<(string name, ScriptableObject data, Type type)> _globals
+    {
+        get
+        {
+            if (_gs != null)
+                return _gs;
+
+            var results = new List<(string name, ScriptableObject data, Type type)>();
+
+            var assemblies = AppDomain.CurrentDomain.GetAssemblies();
+            for (int a = 0; a < assemblies.Length; a++)
+            {
+                Type[] types;
+                try
+                {
+                    types = assemblies[a].GetTypes();
+                }
+                catch (ReflectionTypeLoadException e)
+                {
+                    types = e.Types;
+                }
+
+                if (types == null)
+                    continue;
+
+                for (int t = 0; t < types.Length; t++)
+                {
+                    var type = types[t];
+                    if (type == null)
+                        continue;
+
+                    // Attribute check
+                    if (type.GetCustomAttribute<SchematicGlobalObjectAttribute>() == null)
+                        continue;
+
+                    // Static Instance property lookup
+                    var prop = type.GetProperty(
+                        "Instance",
+                        BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy);
+
+                    if (prop == null)
+                        continue;
+
+                    var value = prop.GetValue(null);
+                    if (value is ScriptableObject so)
+                    {
+                        var attr = type.GetCustomAttribute<SchematicGlobalObjectAttribute>();
+                        var displayName = attr.Name;
+
+                        results.Add((displayName, so, type));
+                    }
+                }
+            }
+
+
+            _gs = results.ToList();
+            return _gs;
+        }
+    }
+
+    private static VisualElement _dg;
+    private static VisualElement _cachedGlobalDraw
+    {
+        get
+        {
+            if (_dg != null) return _dg;
+
+            VisualElement globalContainer = new();
+
+            foreach (var instance in _globals)
+            {
+                var objFoldout = new Foldout()
+                {
+                    text = instance.name
+                };
+
+                var path = AssetDatabase.GetAssetPath(SchematicEditorData.Instance) + "/Global Events/" + instance.name + "/";
+                (bool draw, VisualElement dock) = IODockRegistry.RenderObjectDock(instance.type, _currentWindow, instance.data, null, path);
+
+                if (draw)
+                {
+                    objFoldout.Add(dock);
+                    globalContainer.Add(objFoldout);
+                }
+            }
+
+            _dg = globalContainer;
+
+            return _dg;
+        }
+    }
+
+    private static SchematicGraphEditorWindow _currentWindow;
+
     #endregion
+
+    private bool _updatedPortParams = false;
 
     /// <summary>
     /// Loads and initializes a graph in the editor window.
@@ -193,32 +299,34 @@ public class SchematicGraphEditorWindow : GraphEditorWindow
     /// <param name="graph">The graph to load and display in the editor</param>
     public override void Load(Graph graph)
     {
+        _currentWindow = this;
+
+        const string loadProcess = "Load Graph";
+        Profiler.StartTracking(loadProcess);
+
         if (Prefab != null)
-            SchematicScope.PrefabGUID = AssetDatabase.GUIDFromAssetPath(AssetDatabase.GetAssetPath(Prefab));
+            SchematicGraph.PrefabGUID = AssetDatabase.GUIDFromAssetPath(AssetDatabase.GetAssetPath(Prefab));
         else
         {
-            var loadedPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(AssetDatabase.GUIDToAssetPath(SchematicScope.PrefabGUID));
+            var loadedPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(AssetDatabase.GUIDToAssetPath(SchematicGraph.PrefabGUID));
             if (loadedPrefab != null)
             {
-                SchematicScope.Prefab = loadedPrefab;
                 SchematicGraph.Prefab = loadedPrefab;
             }
         }
 
-        EventManager = new((SchematicGraph)graph);
-        _sidebarAndContent = new SidebarAndContent();
-        _sidebarAndContent.SidebarContainer.style.minHeight = Length.Percent(100);
+        SignalManager = new((SchematicGraph)graph);
+        _sidebarAndContent = new SidebarAndContent("schematic-snc");
 
-        _sidebarTabs = new()
-        {
-            style =
-            {
-                height = Length.Percent(100)
-            }
-        };
+        _sidebarAndContent.styleSheets.Add(Resources.Load<StyleSheet>("IODock"));
+
+        _sidebarAndContent.SidebarContainer.parent.parent.AddToClassList("iodock");
+
+        _sidebarTabs = new("scope");
+
         _sidebarTabs.AddTab("Global");
         _sidebarTabs.AddTab("Prefab");
-        _sidebarTabs.AddTab("Variables");
+        _sidebarTabs.AddTab("Graph");
 
         _sidebarAndContent.SidebarContainer.Add(_sidebarTabs);
 
@@ -226,14 +334,31 @@ public class SchematicGraphEditorWindow : GraphEditorWindow
 
         _sidebarAndContent.contentContainer.Add(Canvas);
 
-        WindowsToSave.Add(this);
-        _processed.Clear();
-
-        if (SchematicScope != null)
+        var canvasOverlay = new VisualElement()
         {
-            var path = AssetDatabase.GetAssetPath(SchematicScope);
+            style =
+            {
+                position = Position.Absolute,
+                left = 0,
+                right = 0,
+                top = 0,
+                bottom = 0
+            }
+        };
+        canvasOverlay.AddToClassList("canvas-overlay");
+
+        canvasOverlay.pickingMode = PickingMode.Ignore;
+
+        Canvas.Add(canvasOverlay);
+
+        WindowsToSave.Add(this);
+        /*_processed.Clear();*/
+
+        if (SchematicGraph != null)
+        {
+            var path = AssetDatabase.GetAssetPath(SchematicGraph);
             SchematicGUID = AssetDatabase.AssetPathToGUID(path);
-            EventManager.WorkingSet.Clear();
+            SignalManager.WorkingSet.Clear();
             RedrawIODock();
         }
         else
@@ -250,24 +375,43 @@ public class SchematicGraphEditorWindow : GraphEditorWindow
         Canvas.RegisterCallback<DragUpdatedEvent>(OnDragUpdated);
         Canvas.RegisterCallback<DragPerformEvent>(OnDragPerform);
 
-
         if (_prefabPath == null)
             _prefabPath = AssetDatabase.GetAssetPath(Prefab);
 
-        SchematicEditorData.Instance.ScriptableEventReferenceDebug = EventManager.WorkingSet;
+        SchematicEditorData.Instance.ScriptableEventReferenceDebug = SignalManager.WorkingSet;
 
         Application.focusChanged += Reload;
         EditorApplication.projectChanged += Canvas.Reload;
         AssemblyReloadEvents.afterAssemblyReload += Canvas.Reload;
 
+        var alreadyUpdated = _updatedPortParams;
+        _updatedPortParams = true;
 
-        foreach (var node in Canvas.Query<NodeView>().ToList())
+        foreach (var nodeView in Canvas.Query<NodeView>().ToList())
         {
-            if (node.Target != null && node.Target is InvokeScriptableEvent invokeFlowNode)
+            if (nodeView.Target != null && nodeView.Target is SendSignalNode invokeFlowNode)
             {
-                if (invokeFlowNode.Event != null && TargetEventMap.ContainsKey(invokeFlowNode.Event))
+                if (invokeFlowNode.Signal != null && TargetEventMap.ContainsKey(invokeFlowNode.Signal))
                 {
-                    foreach (var component in TargetEventMap[invokeFlowNode.Event])
+                    var signal = invokeFlowNode.Signal;
+
+                    foreach (var port in invokeFlowNode.Ports.Values.Where(port => port.Type != typeof(ActionPort)).ToList())
+                    {
+                        invokeFlowNode.RemovePort(invokeFlowNode.GetPort(port.Name));
+                    }
+
+                    foreach (var param in signal.Property.GetAttributes().OfType<ParameterAttribute>())
+                    {
+                        invokeFlowNode.AddPort(new Port
+                        {
+                            Type = param.Type,
+                            Name = param.Name,
+                            Capacity = PortCapacity.Multiple,
+                            Direction = PortDirection.Input
+                        });
+                    }
+
+                    foreach (var component in TargetEventMap[invokeFlowNode.Signal])
                     {
                         var objectField = new ObjectField()
                         {
@@ -276,16 +420,34 @@ public class SchematicGraphEditorWindow : GraphEditorWindow
                         };
                         objectField.SetEnabled(false);
 
-                        node.Add(objectField);
+                        nodeView.Add(objectField);
                     }
                 }
             }
 
-            if (node.Target != null && node.Target is OnScriptableEventInvoked onInvokeFlowNode)
+            if (nodeView.Target != null && nodeView.Target is OnSignalReceivedNode onInvokeFlowNode)
             {
-                if (onInvokeFlowNode.Event != null && TargetEventMap.ContainsKey(onInvokeFlowNode.Event))
+                var signal = onInvokeFlowNode.Signal;
+
+                foreach(var port in onInvokeFlowNode.Ports.Values.Where(port => port.Type != typeof(ActionPort)).ToList())
                 {
-                    foreach (var component in TargetEventMap[onInvokeFlowNode.Event])
+                    onInvokeFlowNode.RemovePort(onInvokeFlowNode.GetPort(port.Name));
+                }
+
+                foreach (var param in signal.Property.GetAttributes().OfType<ParameterAttribute>())
+                {
+                    onInvokeFlowNode.AddPort(new Port
+                    {
+                        Type = param.Type,
+                        Name = param.Name,
+                        Capacity = PortCapacity.Multiple,
+                        Direction = PortDirection.Output
+                    });
+                }
+
+                if (onInvokeFlowNode.Signal != null && TargetEventMap.ContainsKey(onInvokeFlowNode.Signal))
+                {
+                    foreach (var component in TargetEventMap[onInvokeFlowNode.Signal])
                     {
                         var objectField = new ObjectField()
                         {
@@ -297,13 +459,22 @@ public class SchematicGraphEditorWindow : GraphEditorWindow
                 }
             }
         }
+        if (!alreadyUpdated) Reload();
+
+        Profiler.StopTracking(loadProcess);
+
+        Prefab.GetComponent<SchematicInstanceController>().SchematicGraph = SchematicGraph;
     }
+
 
     private void OnDisable()
     {
-        Application.focusChanged -= Reload;
-        EditorApplication.projectChanged -= Canvas.Reload;
-        AssemblyReloadEvents.afterAssemblyReload -= Canvas.Reload;
+        if(Canvas != null)
+        {
+            Application.focusChanged -= Reload;
+            EditorApplication.projectChanged -= Canvas.Reload;
+            AssemblyReloadEvents.afterAssemblyReload -= Canvas.Reload;
+        }
     }
 
     private void Reload(bool val = false)
@@ -311,12 +482,13 @@ public class SchematicGraphEditorWindow : GraphEditorWindow
         Canvas.Reload();
     }
 
+
     /// <summary>
     /// Redraws the Input/Output Event dock in the sidebar.
     /// Refreshes the prefab hierarchy display, component toggles, and schematic foldouts.
     /// This method is called whenever the UI needs to be updated to reflect changes in the graph or prefab.
     /// </summary>
-    internal void RedrawIODock()
+    internal void RedrawIODock(bool refreshGlobals = false)
     {
         var prefabAsset = AssetDatabase.LoadAssetAtPath<GameObject>(_prefabPath);
         if (prefabAsset != null)
@@ -324,7 +496,9 @@ public class SchematicGraphEditorWindow : GraphEditorWindow
             SchematicGraph.Prefab = prefabAsset;
         }
 
-        SchematicScope.Prefab = Prefab;
+        SchematicGraph.Prefab = Prefab;
+
+        if (refreshGlobals) _dg = null;
 
         RedrawGlobalIO();
         RedrawPrefabIO();
@@ -334,65 +508,45 @@ public class SchematicGraphEditorWindow : GraphEditorWindow
     private void RedrawGlobalIO()
     {
         _sidebarTabs["Global"].Clear();
-
-        var instProps = AppDomain.CurrentDomain.GetAssemblies()
-            .SelectMany(assembly => assembly.GetTypes())
-            .Where(type => type.GetCustomAttribute<SchematicGlobalObjectAttribute>() != null)
-            .Select(type => type.GetProperty("Instance", BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy))
-            .Select(prop => prop.GetValue(prop.GetType()))
-            .OfType<ScriptableObject>();
-
-        foreach (var instance in instProps)
-        {
-            var attr = instance.GetType().GetCustomAttribute<SchematicGlobalObjectAttribute>();
-            var displayName = attr.Name;
-
-            var objFoldout = new PersistentFoldout(SchematicGUID + "_Global_", displayName)
-            {
-                text = displayName
-            };
-
-
-            var path = AssetDatabase.GetAssetPath(SchematicEditorData.Instance) + "/Global Events/" + displayName + "/";
-            (bool draw, VisualElement dock) = IODockRegistry.GetComponentRenderer(instance.GetType()).Render(this, instance, null, path);
-
-            if(draw)
-            {
-                objFoldout.Add(dock);
-                _sidebarTabs["Global"].Add(objFoldout);
-            }
-        }
+        _sidebarTabs["Global"].Set(_cachedGlobalDraw);
     }
 
     private void RedrawPrefabIO()
     {
-        // Component Name Toggle for Component Tabs
-        var componentNamesToggle = new Toggle
-        {
-            text = "Show Component Names",
-            value = ShowComponentNames
-        };
-        componentNamesToggle.RegisterValueChangedCallback(evt =>
-        {
-            ShowComponentNames = evt.newValue;
-            RedrawPrefabIO();
-        });
-
         // Draw
         _sidebarTabs["Prefab"].Clear();
-        _sidebarTabs["Prefab"].Add(componentNamesToggle);
-
         if (Prefab != null)
         {
-            _sidebarTabs["Prefab"].Add(new PrefabHierarchy(Prefab, this, true, true));
+            _sidebarTabs["Prefab"].UseFactory(() =>
+            {
+                VisualElement content = new();
+
+                // Component Name Toggle for Component Tabs
+                var componentNamesToggle = new Toggle
+                {
+                    text = "Show Component Names",
+                    value = ShowComponentNames
+                };
+                componentNamesToggle.RegisterValueChangedCallback(evt =>
+                {
+                    ShowComponentNames = evt.newValue;
+                    RedrawPrefabIO();
+                });
+
+                //content.Add(componentNamesToggle);
+                content.Add(new PrefabHierarchy(Prefab, this));
+
+                return content;
+            });
         }
     }
 
     private void RedrawGraphIO()
     {
         // Draw
-        _sidebarTabs["Variables"].Clear();
-        _sidebarTabs["Variables"].Add(IODockRegistry.RenderMultipleFields(this, Prefab.GetComponent<SchematicInstanceController>(), Prefab.GetComponent<SchematicInstanceController>()).Item2);
+        _sidebarTabs["Graph"].Clear();
+        if(Prefab != null)
+            _sidebarTabs["Graph"].Set(IODockRegistry.RenderMultipleFields(this, Prefab.GetComponent<SchematicInstanceController>(), Prefab.GetComponent<SchematicInstanceController>()).Item2);
     }
 
     /// <summary>
@@ -422,7 +576,7 @@ public class SchematicGraphEditorWindow : GraphEditorWindow
 
             foreach (var obj in DragAndDrop.objectReferences)
             {
-                if (obj is ScriptableEventBase scriptableEvent)
+                if (obj is SignalData scriptableEvent)
                 {
                     ShowEventDropMenu(scriptableEvent, dropPosition);
                 }
@@ -443,7 +597,7 @@ public class SchematicGraphEditorWindow : GraphEditorWindow
     /// enabling creation of Event Nodes in the Graph by the user..
     /// </summary>
     /// <param name="evt">The drag perform event data</param>
-    private void ShowEventDropMenu(ScriptableEventBase evtAsset, Vector2 position)
+    private void ShowEventDropMenu(SignalData evtAsset, Vector2 position)
     {
         GenericMenu menu = new GenericMenu();
 
@@ -482,25 +636,49 @@ public class SchematicGraphEditorWindow : GraphEditorWindow
     /// <summary>
     /// Creates an invoke node for a given scriptable event at the specified position, for drag-and-drop of I/O from the User
     /// </summary>
-    /// <param name="evtAsset">The scriptable event to create an invoke node for</param>
+    /// <param name="signalAsset">The scriptable event to create an invoke node for</param>
     /// <param name="position">The position to place the new node</param>
-    private void CreateInvokeNode(ScriptableEventBase evtAsset, Vector2 position)
+    private void CreateInvokeNode(SignalData signalAsset, Vector2 position)
     {
-        var node = (InvokeScriptableEvent)NodeReflection.GetNodeTypes()[nameof(InvokeScriptableEvent)].CreateInstance();
-        node.Event = evtAsset;
-        Canvas.AddNodeFromSearch(node, position, null);
+        var node = (SendSignalNode)NodeReflection.GetNodeTypes()[nameof(SendSignalNode)].CreateInstance();
+        node.Signal = signalAsset;
+
+        foreach (var param in signalAsset.Parameters.Contents)
+        {
+            node.AddPort(new Port
+            {
+                Type = Union.TypeLookup[param.Value.Type],
+                Name = param.Name,
+                Capacity = PortCapacity.Multiple,
+                Direction = PortDirection.Input
+            });
+        }
+
+        Canvas.AddNodeFromSearch(node, this.position.position + position , null);
     }
 
     /// <summary>
     /// Creates an on-invoke node for a given scriptable event at the specified position, for drag-and-drop of I/O from the User
     /// </summary>
-    /// <param name="evtAsset">The scriptable event to create an on-invoke node for</param>
+    /// <param name="signalAsset">The scriptable event to create an on-invoke node for</param>
     /// <param name="position">The position to place the new node</param>
-    private void CreateOnInvokeNode(ScriptableEventBase evtAsset, Vector2 position)
+    private void CreateOnInvokeNode(SignalData signalAsset, Vector2 position)
     {
-        var node = (OnScriptableEventInvoked)NodeReflection.GetNodeTypes()[nameof(OnScriptableEventInvoked)].CreateInstance();
-        node.Event = evtAsset;
-        Canvas.AddNodeFromSearch(node, position, null);
+        var node = (OnSignalReceivedNode)NodeReflection.GetNodeTypes()[nameof(OnSignalReceivedNode)].CreateInstance();
+        node.Signal = signalAsset;
+
+        foreach (var param in signalAsset.Parameters.Contents)
+        {
+            node.AddPort(new Port
+            {
+                Type = Union.TypeLookup[param.Value.Type],
+                Name = param.Name,
+                Capacity = PortCapacity.Multiple,
+                Direction = PortDirection.Output
+            });
+        }
+
+        Canvas.AddNodeFromSearch(node, this.position.position + position, null);
     }
 
 
@@ -560,4 +738,6 @@ public class SchematicGraphEditorWindow : GraphEditorWindow
         target.style.backgroundColor = defaultBackground;
         flashed = false;
     }
+
+
 }

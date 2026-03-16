@@ -23,16 +23,16 @@ namespace Remedy.Weapons
         [Layout("Settings/Events", ELayout.Tab | ELayout.Collapse)]
         [LayoutStart("./Output")]*/
         [Tooltip("Invoked when the Weapon is picked up by a WeaponHolder. The GameObject possessing the WeaponHolder Component is passed.")]
-        public ScriptableEventGameObject OnPickedup;
+        public SignalData OnPickedup;
         [Tooltip("Invoked when the Weapon is dropped by a WeaponHolder")]
-        public ScriptableEvent OnDropped;
+        public SignalData OnDropped;
 
         [Tooltip("Invoked after this Fire Mode shoots, intended to pull the Object containing the Weapon toward the direction it is Attacking.")]
-        public ScriptableEventVector3 OnPull;
+        public SignalData OnPull;
         [Tooltip("Invoked before this Fire Mode shoots, redirecting the object toward the best Target, rotationally (must be handled externally)")]
-        public ScriptableEventVector3 OnRedirectDirection;
+        public SignalData OnRedirectDirection;
         [Tooltip("Invoked before this Fire Mode shoots, redirecting the object toward the best Target, positionally (must be handled externally)")]
-        public ScriptableEventVector3 OnRedirectPosition;
+        public SignalData OnRedirectPosition;
 
         /*[Layout("Settings", ELayout.Tab | ELayout.Collapse)]
         [Layout("Settings/Component", ELayout.Tab | ELayout.Collapse)]
@@ -47,7 +47,7 @@ namespace Remedy.Weapons
             "modes of fire available for each Unreal Tournament weapon.")]
         [InfoBox("When a WeaponHolder fires or reloads, it finds the correct FireMode to act upon by it's Index in this list.")]*/
         [Tooltip("The Transforms of the Muzzles to use for the FireModes of the Weapons.")]
-        [IdentityListRenderer(identifierType: EventListIdentifierType.Name, identifierField: "Name", depth: 0)]
+        [IdentityListRenderer(identifierType: ListIdentifierType.Name, identifierField: "Name", depth: 0)]
         public FireModeMuzzlePair[] FireModeMuzzles;
 
 /*        [Layout("Settings", ELayout.Tab | ELayout.Collapse)]
@@ -494,11 +494,11 @@ namespace Remedy.Weapons
         [Serializable]
         public class WeaponInputEvent
         {
-            public ScriptableEvent OnInput;
+            public SignalData OnInput;
             //[InfoBox("A FireMode value of -1 will trigger the event for all FireModes at once.")]
             public int FireMode = -1;
             [Tooltip("The Event fired when the event actually occurs")]
-            public ScriptableEvent OnTriggered;
+            public SignalData OnTriggered;
         }
 
         [Serializable]
@@ -507,7 +507,7 @@ namespace Remedy.Weapons
             //[Dropdown("GetWeapons")]
             public WeaponData Weapon;
             public WeaponEventType EventType;
-            public ScriptableEventInt Event;
+            public SignalData Event;
 
             public bool IsFireModeEvent => EventType == WeaponEventType.Fire || EventType == WeaponEventType.Reload;
 

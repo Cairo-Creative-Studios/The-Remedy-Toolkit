@@ -1,5 +1,6 @@
 using BlueGraph.Editor;
 using Remedy.Schematics;
+using SchematicAssets;
 using UnityEditor;
 using UnityEngine;
 
@@ -19,18 +20,19 @@ public static class SchematicHierarchyDrawer
         var controller = go.GetComponent<SchematicInstanceController>();
         if (controller == null/* || controller?.SchematicGraphs.Length > 0*/) return;
 
-        foreach(var graph in controller.SchematicGraphs)
-        {
-            if (graph == null || controller == null || controller.gameObject == null) continue;
-            graph.Prefab = PrefabUtility.GetCorrespondingObjectFromSource(go);
-        }
+        var prefab = PrefabUtility.GetCorrespondingObjectFromSource(go);
+
+        if (controller.SchematicGraph == null)
+            controller.SchematicGraph = SchematicAssetManager.Load<SchematicGraph>(prefab,"","");
+        if (controller.SchematicGraph == null)
+            return;
+
+        controller.SchematicGraph.Prefab = PrefabUtility.GetCorrespondingObjectFromSource(go);
 
         Rect buttonRect = new Rect(selectionRect.xMax - 20, selectionRect.y, 18, selectionRect.height);
         if (GUI.Button(buttonRect, "§", EditorStyles.miniButton))
         {
-            Selection.activeObject = controller.SchematicGraphs[0];
-            EditorGUIUtility.PingObject(controller.SchematicGraphs[0]);
-            GraphAssetHandler.OnOpenGraph(controller.SchematicGraphs[0]);
+            GraphAssetHandler.OnOpenGraph(controller.SchematicGraph);
         }
     }
 }

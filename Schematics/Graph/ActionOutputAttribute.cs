@@ -4,6 +4,7 @@ using UnityEngine;
 
 namespace Remedy.Schematics
 {
+    [BlockCast]
     public class ActionOutputAttribute : OutputAttribute
     {
         public bool NodeInput;

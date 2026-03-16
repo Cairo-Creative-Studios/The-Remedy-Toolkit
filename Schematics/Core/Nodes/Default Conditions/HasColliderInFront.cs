@@ -27,34 +27,26 @@ namespace Remedy.Schematics
 
         public override bool Condition()
         {
-            try
+            if (GetPort("OtherTag").ConnectionCount != 0)
+                Tag = GetInputValue<string>("OtherTag");
+
+            if (GetPort("Distance").ConnectionCount != 0)
+                Distance = GetInputValue<float>("Distance");
+
+            if (GetPort("Radius").ConnectionCount != 0)
+                Radius = GetInputValue<float>("Radius");
+
+            var transform = Object.transform;
+            RaycastHit hit;
+
+            if (Physics.SphereCast(transform.position, Radius, transform.forward, out hit))
             {
-                if (GetPort("OtherTag").ConnectionCount != 0)
-                    Tag = GetInputValue<string>("OtherTag");
-
-                if (GetPort("Distance").ConnectionCount != 0)
-                    Distance = GetInputValue<float>("Distance");
-
-                if (GetPort("Radius").ConnectionCount != 0)
-                    Radius = GetInputValue<float>("Radius");
-
-                var transform = Object.transform;
-                RaycastHit hit;
-
-                if (Physics.SphereCast(transform.position, Radius, transform.forward, out hit))
+                if(Tag == "" || hit.collider.tag == Tag)
                 {
-                    if(Tag == "" || hit.collider.tag == Tag)
-                    {
-                        SetOutputValue("Other GameObject", hit.collider.gameObject);
-                        return true;
-                    }
+                    SetOutputValue("Other GameObject", hit.collider.gameObject);
+                    return true;
                 }
             }
-            catch(Exception e)
-            {
-                return false;
-            }
-
             return false;
         }
 

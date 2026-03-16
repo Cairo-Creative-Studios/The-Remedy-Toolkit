@@ -13,7 +13,7 @@ namespace Remedy.Cameras
 
         private Camera _camera;
         public static Camera Camera => Instance._camera ??= CameraTransform.GetCachedComponent<Camera>();
-        public static Transform CameraTransform => Instance._cameraTransform;
+        public static Transform CameraTransform => Instance._cameraTransform ?? null;
 
         private CameraOperator[] _operators;
 
@@ -38,7 +38,9 @@ namespace Remedy.Cameras
         void Start()
         {
             _operators = FindObjectsByType<CameraOperator>(FindObjectsSortMode.None);
-            CameraSubsystem.SetMainCamera(Camera);
+
+            if(Camera != null)
+                CameraSubsystem.SetMainCamera(Camera);
         }
 
         private void Update()

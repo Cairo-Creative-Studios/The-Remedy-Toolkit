@@ -17,8 +17,8 @@ namespace Remedy.Audio
         [Layout("Settings/Events", ELayout.Tab | ELayout.Collapse)]
         [LayoutStart("./Input")]*/
         [Tooltip("The Event that triggers this Sound Cue.")]
-        public ScriptableEvent Event;
-        public ScriptableEvent StopEvent;
+        public SignalData Event;
+        public SignalData StopEvent;
 
 /*        [Layout("Settings", ELayout.Tab | ELayout.Collapse)]
         [Layout("Settings/Component", ELayout.Tab | ELayout.Collapse)]

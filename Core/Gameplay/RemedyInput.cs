@@ -1,4 +1,3 @@
-using CodiceApp.EventTracking.Plastic;
 using Remedy.Framework;
 using Remedy.Schematics.Utils;
 //using SaintsField;
@@ -9,7 +8,7 @@ using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.InputSystem;
 
-[SchematicGlobalObject("Input")]
+[SchematicGlobalObject("Input System")]
 public class RemedyInput : SingletonData<RemedyInput>
 {
     public bool ShowCursor = false;
@@ -37,9 +36,9 @@ public class RemedyInput : SingletonData<RemedyInput>
     /// </summary>
     public static UnityEvent<InputAction.CallbackContext> OnInputUp => Instance._onInputUp;
 
-    private static SerializableDictionary<ScriptableEventBase, Union> _currentInput = new();
+    private static SerializableDictionary<SignalData, Union> _currentInput = new();
 
-    [IdentityListRenderer(identifierType: EventListIdentifierType.Name, identifierField: "Name", depth: 0, foldoutTitle: "Maps", itemName: "Map")]
+    [IdentityListRenderer(identifierType: ListIdentifierType.Name, identifierField: "Name", depth: 0, foldoutTitle: "Input Maps", itemLabel: "Map")]
     public InputActionMap[] InputMaps = new InputActionMap[0];
     [SerializeField]
     //[Dropdown("GetInputMaps")]
@@ -66,32 +65,26 @@ public class RemedyInput : SingletonData<RemedyInput>
                 return;
             }
 
-        foreach(var inputEventCollection in _currentActionMap.Inputs)
+        foreach (var inputEventCollection in _currentActionMap.Inputs)
         {
             inputEventCollection.Input.Enable();
 
             inputEventCollection.Input.started += (InputAction.CallbackContext context) =>
             {
-                foreach(var ev in inputEventCollection.Output.Events)
+                switch (inputEventCollection.Output.Parameters[0].Type)
                 {
-                    switch (ev)
-                    {
-                        case ScriptableEventBoolean asBool:
-                            _currentInput[ev] = true;
-                            asBool?.Invoke(_currentInput[ev]);
-                            break;
-                        case ScriptableEventFloat asFloat:
-                            _currentInput[ev] = context.ReadValue<float>();
-                            asFloat?.Invoke(_currentInput[ev]);
-                            break;
-                        case ScriptableEventVector2 asVec2:
-                            _currentInput[ev] = context.ReadValue<Vector2>();
-                            asVec2?.Invoke(_currentInput[ev]);
-                            break;
-                        default:
-                            //ev?.Invoke((Union)context.ReadValueAsObject());
-                            break;
-                    }
+                    case Union.ValueType.Bool:
+                        inputEventCollection.Output.Invoke(context.ReadValue<bool>());
+                        break;
+                    case Union.ValueType.Float:
+                        inputEventCollection.Output.Invoke(context.ReadValue<float>());
+                        break;
+                    case Union.ValueType.Vector2:
+                        inputEventCollection.Output.Invoke(context.ReadValue<Vector2>());
+                        break;
+                    default:
+                        inputEventCollection.Output.Invoke(context.ReadValueAsObject());
+                        break;
                 }
 
                 if (!inputEventCollection.OneShot)
@@ -104,26 +97,20 @@ public class RemedyInput : SingletonData<RemedyInput>
 
             inputEventCollection.Input.performed += (InputAction.CallbackContext context) =>
             {
-                foreach (var ev in inputEventCollection.Output.Events)
+                switch (inputEventCollection.Output.Parameters[0].Type)
                 {
-                    switch (ev)
-                    {
-                        case ScriptableEventBoolean asBool:
-                            _currentInput[ev] = true;
-                            asBool?.Invoke(_currentInput[ev]);
-                            break;
-                        case ScriptableEventFloat asFloat:
-                            _currentInput[ev] = context.ReadValue<float>();
-                            asFloat?.Invoke(_currentInput[ev]);
-                            break;
-                        case ScriptableEventVector2 asVec2:
-                            _currentInput[ev] = context.ReadValue<Vector2>();
-                            asVec2?.Invoke(_currentInput[ev]);
-                            break;
-                        default:
-                            //ev?.Invoke((Union)context.ReadValueAsObject());
-                            break;
-                    }
+                    case Union.ValueType.Bool:
+                        inputEventCollection.Output.Invoke(context.ReadValue<bool>());
+                        break;
+                    case Union.ValueType.Float:
+                        inputEventCollection.Output.Invoke(context.ReadValue<float>());
+                        break;
+                    case Union.ValueType.Vector2:
+                        inputEventCollection.Output.Invoke(context.ReadValue<Vector2>());
+                        break;
+                    default:
+                        inputEventCollection.Output.Invoke(context.ReadValueAsObject());
+                        break;
                 }
             };
             inputEventCollection.Input.canceled += (InputAction.CallbackContext context) =>
@@ -131,31 +118,25 @@ public class RemedyInput : SingletonData<RemedyInput>
                 _actionsToUpdate.Remove(inputEventCollection.Input);
             };
 
-            foreach (var ev in inputEventCollection.Output.Events)
+
+            inputEventCollection.Input.canceled += (InputAction.CallbackContext context) =>
             {
-                inputEventCollection.Input.canceled += (InputAction.CallbackContext context) =>
+                switch (inputEventCollection.Output.Parameters[0].Type)
                 {
-                    switch (ev)
-                    {
-                        case ScriptableEventBoolean asBool:
-                            _currentInput[ev] = false;
-                            asBool?.Invoke(default);
-                            break;
-                        case ScriptableEventFloat asFloat:
-                            _currentInput[ev] = default;
-                            asFloat?.Invoke(default);
-                            break;
-                        case ScriptableEventVector2 asVec2:
-                            _currentInput[ev] = default;
-                            asVec2?.Invoke(default);
-                            break;
-                        default:
-                            _currentInput[ev] = default;
-                            ev?.Invoke(default);
-                            break;
-                    }
-                };
-            }
+                    case Union.ValueType.Bool:
+                        inputEventCollection.Output.FinalInvoke(default);
+                        break;
+                    case Union.ValueType.Float:
+                        inputEventCollection.Output.FinalInvoke(default);
+                        break;
+                    case Union.ValueType.Vector2:
+                        inputEventCollection.Output.FinalInvoke(default);
+                        break;
+                    default:
+                        inputEventCollection.Output.FinalInvoke(default);
+                        break;
+                }
+            };
         }
     }
 
@@ -167,10 +148,7 @@ public class RemedyInput : SingletonData<RemedyInput>
         {
             foreach (var inputEvent in inputEvents)
             {
-                foreach(var ev in inputEvent.Output.Events)
-                {
-                    ev?.Invoke(_currentInput[ev]);
-                }
+                inputEvent.Output?.Invoke(_currentInput);
             }
         }
 
@@ -190,7 +168,7 @@ public class RemedyInput : SingletonData<RemedyInput>
     public class InputActionMap 
     {
         public string Name;
-        [IdentityListRenderer(identifierType: EventListIdentifierType.Name, identifierField: "Name", depth: 1, foldoutTitle: "Inputs", itemName: "Input")]
+        [IdentityListRenderer(identifierType: ListIdentifierType.Name, identifierField: "Name", depth: 1, foldoutTitle: "Inputs", itemLabel: "Input")]
         public InputActionEvent[] Inputs = new InputActionEvent[0];
 
         public InputActionMap() { }
@@ -225,8 +203,8 @@ public class RemedyInput : SingletonData<RemedyInput>
         [Tooltip("The Input Action, with it's binds.")]
         public InputAction Input= new();
 
-        [EventContainerRenderer(typeof(ScriptableEventBase), "EventName")]
-        public ScriptableEventBase.Output Output = new ScriptableEventBase.Output();
+        [EventContainerRenderer(typeof(SignalData), "EventName", false)]
+        public SignalData Output;
 
         [Tooltip("If true, the Output Event is not called again on update, although it will be called if the value for the Input has been updated (InputActionPhase.Performed).")]
         public bool OneShot = false;

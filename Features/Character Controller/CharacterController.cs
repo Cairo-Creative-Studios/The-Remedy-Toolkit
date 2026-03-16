@@ -1,15 +1,19 @@
+using Remedy.Framework;
+using Remedy.Schematics.Utils;
 using UnityEngine;
 
 [SchematicComponent("Movement/3D/Default Character Controller")]
 [RequireComponent(typeof(CharacterMotionContext))]
 [RequireComponent(typeof(CharacterRaycastContext))]
-public class PhysicsBasedCharacterController : MonoBehaviour
+public class PhysicsBasedCharacterController : SchematicMonoBehavior
 {
-    [EventLink(typeof(CharacterMotionContext), nameof(CharacterMotionContext.MoveInput))]
-    public ScriptableEventVector2.Input MoveInput => _motionContext?.MoveInput;
-    [EventLink(typeof(CharacterMotionContext), nameof(CharacterMotionContext.JumpInput))]
-    public ScriptableEventBoolean.Input JumpInput => _motionContext?.JumpInput;
-    public ScriptableEventVector3.Input MoveToPosition = new();
+    [SchematicEventLink(typeof(CharacterMotionContext), nameof(CharacterMotionContext.MoveInput))]
+    public Signal<Vector2> MoveInput => _motionContext.MoveInput;
+    [SchematicEventLink(typeof(CharacterMotionContext), nameof(CharacterMotionContext.JumpInput))]
+    public Signal<bool> JumpInput => _motionContext.JumpInput;
+    [InputSignal]
+    [Parameter("Position", typeof(Vector3))]
+    public Signal<Vector3> MoveToPosition = new("MoveToPosition");
 
     [SchematicProperties]
     public CharacterControllerProperties Properties;
@@ -30,13 +34,11 @@ public class PhysicsBasedCharacterController : MonoBehaviour
     private bool _reachedJumpArc = false;
     private float _tempHangTimeDuration = -1; // > 0 = use this instead of default Hang Time
     private float _currentHangTime = 0f;
-    private float _hoverHeight;
     private float _jumpStartGroundHeight;
     private float _groundY = 0;
     private bool _hadJumped = false;
     private bool _canJump = true;
     private bool _enableGravity = true;
-
 
     private void OnEnable()
     {
@@ -49,13 +51,13 @@ public class PhysicsBasedCharacterController : MonoBehaviour
         _currentHangTime = Properties.HangTimeDuration;
         _jumpBufferTime = Properties.JumpBuffer;
 
-        MoveInput?.Subscribe(this, (Vector2 value) =>
+        MoveInput.Subscribe(this, (Vector2 value) =>
         {
             _moveInput.x = value.x;
             _moveInput.z = value.y;
         });
 
-        JumpInput?.Subscribe(this, (bool value) =>
+        JumpInput.Subscribe(this, (bool value) =>
         {
             _moveInput.y = value ? 1 : 0;
 
@@ -85,9 +87,9 @@ public class PhysicsBasedCharacterController : MonoBehaviour
 
     private void OnDisable()
     {
-        MoveInput?.Unsubscribe(this);
-        JumpInput?.Unsubscribe(this);
-        MoveToPosition?.Unsubscribe(this);
+        MoveInput.Unsubscribe(this);
+        JumpInput.Unsubscribe(this);
+        MoveToPosition.Unsubscribe(this);
     }
 
     private void FixedUpdate()
@@ -105,11 +107,13 @@ public class PhysicsBasedCharacterController : MonoBehaviour
             _groundY = _raycastContext.GroundPosition.y;
             _prevGrounded = true;
             _reachedJumpArc = false;
-            _motionContext.SpringToY(_groundY, Properties.RideHeight, Properties.RideSpringStrength, Properties.HangTimeDamper, Properties.MaxHoverForce);
+            _motionContext.SpringToVertically(_groundY, Properties.RideHeight, Properties.RideSpringStrength, Properties.HangTimeDamper, Properties.MaxHoverForce);
         }
         else
         {
-            if(_enableGravity)
+            float hangTimeDuration = _tempHangTimeDuration > 0 ? _tempHangTimeDuration : Properties.HangTimeDuration;
+
+            if (_enableGravity && !(_currentHangTime < hangTimeDuration && _hadJumped) && !_raycastContext.IsGrounded)
                 _motionContext.ApplyGravity();
 
             _prevGrounded = false;
@@ -143,7 +147,8 @@ public class PhysicsBasedCharacterController : MonoBehaviour
                 _jumpResetTime = 0f;
                 _jumpArcY = _raycastContext.GroundPosition.y + Properties.JumpHeight;
 
-                _motionContext.ApplyVerticalForce(Properties.JumpSpeed, true);
+                if(_motionContext.Velocity.y < Properties.JumpSpeed)
+                    _motionContext.ApplyVerticalForce(Properties.JumpSpeed);
 
                 _jumpStartGroundHeight = _raycastContext.GroundPosition.y;
                 _reachedJumpArc = false;
@@ -158,7 +163,8 @@ public class PhysicsBasedCharacterController : MonoBehaviour
 
             if (predictedPos.y < _jumpArcY)
             {
-                _motionContext.ApplyVerticalForce(Properties.JumpSpeed, true);
+                if (_motionContext.Velocity.y < Properties.JumpSpeed)
+                    _motionContext.ApplyVerticalForce(Properties.JumpSpeed);
             }
             else
             {
@@ -170,11 +176,11 @@ public class PhysicsBasedCharacterController : MonoBehaviour
         else if (_currentHangTime < hangTimeDuration && _hadJumped)
         {
             if(_reachedJumpArc)
-                _motionContext.SpringToY(_jumpStartGroundHeight, Properties.JumpHeight, Properties.RideSpringStrength, Properties.HangTimeDamper, Properties.MaxHoverForce);
+                _motionContext.SpringToVertically(_jumpStartGroundHeight, Properties.JumpHeight, Properties.RideSpringStrength, Properties.HangTimeDamper, Properties.MaxHoverForce);
 
             _currentHangTime += _dt;
         }
-        else if(!_prevGrounded)
+        else if(!_raycastContext.IsGrounded)
         {
             _motionContext.ApplyVerticalForce(-Properties.FallSpeed);
             _enableGravity = true;

@@ -10,6 +10,20 @@ namespace Remedy.Framework
 {
     public static class ReflectionExtension
     {
+        private static readonly List<Assembly> _assemblies;
+        private static readonly Lazy<List<Type>> _allTypes = new(BuildAllTypes);
+
+        private static readonly Dictionary<Type, List<Type>> _derivedConcreteCache = new();
+        private static readonly Dictionary<Type, List<Type>> _derivedAllCache = new();
+
+        static ReflectionExtension()
+        {
+            _assemblies = AppDomain.CurrentDomain
+                .GetAssemblies()
+                .Where(a => !a.IsDynamic)
+                .ToList();
+        }
+
         public static IEnumerable<Type> GetLoadableTypes(this Assembly assembly)
         {
             try
@@ -20,6 +34,34 @@ namespace Remedy.Framework
             {
                 return e.Types.Where(t => t != null);
             }
+        }
+        public static IReadOnlyList<Type> GetAllTypes()
+        {
+            return _allTypes.Value;
+        }
+
+        private static List<Type> BuildAllTypes()
+        {
+            var result = new List<Type>();
+
+            var assemblies = AppDomain.CurrentDomain
+                .GetAssemblies()
+                .Where(a => !a.IsDynamic);
+
+            foreach (var assembly in assemblies)
+            {
+                try
+                {
+                    var types = assembly.GetTypes();
+                    result.AddRange(types);
+                }
+                catch (ReflectionTypeLoadException e)
+                {
+                    result.AddRange(e.Types.Where(t => t != null)!);
+                }
+            }
+
+            return result;
         }
 
         public static object ConvertToFieldType(this object value, Type fieldType)
@@ -96,72 +138,87 @@ namespace Remedy.Framework
             return attributes.ToArray();
         }
 
-        /// <summary>
-        /// Get's all Types that inherit from the given Base Type
-        /// </summary>
-        /// <returns>The inherited types.</returns>
-        /// <param name="Base">The Base Type</param>
-        public static List<Type> GetInheritedTypes(this Type Base, bool allowAbstract = false)
-        {
-            List<Type> types = new List<Type>();
-            foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
-                foreach (var type in assembly.GetTypes())
-                    if (type.BaseType != null)
-                        if (Base.IsAssignableFrom(type))
-                            if(allowAbstract || (!type.IsAbstract && !type.IsGenericType))
-                                types.Add(type);
 
-            return types;
+        /// <summary>
+        /// Gets all Types that inherit from the given base type.
+        /// Cached after first lookup.
+        /// </summary>
+        public static List<Type> GetInheritedTypes(this Type baseType, bool allowAbstract = false)
+        {
+            var cache = allowAbstract ? _derivedAllCache : _derivedConcreteCache;
+
+            if (cache.TryGetValue(baseType, out var cached))
+                return cached;
+
+            var result = GetAllTypes()
+                .Where(t =>
+                    t != null &&
+                    t != baseType &&
+                    baseType.IsAssignableFrom(t) &&
+                    (allowAbstract || (!t.IsAbstract && !t.IsGenericType)))
+                .ToList();
+
+            cache[baseType] = result;
+            return result;
         }
+
+        private static readonly Lazy<Dictionary<Type, List<Type>>> _interfaceMap = new(BuildInterfaceMap);
 
         /// <summary>
         /// Gets all types that implement the given Interface, or implement an Interface that implements the given Interface
         /// </summary>
         /// <param name="Interface"></param>
         /// <returns></returns>
-        public static Type[] GetInterfacingTypes(this Type Interface)
+        public static IReadOnlyList<Type> GetInterfacingTypes(this Type interfaceType)
         {
-            List<Type> types = new List<Type>();
+            if (!interfaceType.IsInterface)
+                return Array.Empty<Type>();
 
-            foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
-            {
-                foreach (var type in assembly.GetTypes())
-                {
-                    var interfaces = type.GetInterfaces();
-                    if (interfaces.Length > 0)
-                    {
-                        foreach (var currentInterface in interfaces)
-                        {
-                            if (currentInterface == Interface || currentInterface.IsAssignableFrom(Interface))
-                            {
-                                types.Add(type);
-                            }
-                        }
-                    }
-                }
-            }
+            var map = _interfaceMap.Value;
 
-            return types.ToArray();
+            return map.TryGetValue(interfaceType, out var list)
+                ? list
+                : Array.Empty<Type>();
         }
 
-        public static Type[] GetDerivedTypes(this Type baseType)
+        private static Dictionary<Type, List<Type>> BuildInterfaceMap()
         {
-            List<Type> derivedTypes = new List<Type>();
+            var result = new Dictionary<Type, List<Type>>();
+            var assemblies = GetAssemblies();
 
-            Assembly[] assemblies = AppDomain.CurrentDomain.GetAssemblies();
-            foreach (Assembly assembly in assemblies)
+            foreach (var assembly in assemblies)
             {
-                Type[] types = assembly.GetTypes();
-                foreach (Type type in types)
+                Type[] types;
+
+                try
                 {
-                    if (baseType.IsAssignableFrom(type))
+                    types = assembly.GetTypes();
+                }
+                catch (ReflectionTypeLoadException e)
+                {
+                    types = e.Types.Where(t => t != null).ToArray()!;
+                }
+
+                foreach (var type in types)
+                {
+                    var interfaces = type.GetInterfaces();
+                    if (interfaces.Length == 0)
+                        continue;
+
+                    foreach (var iface in interfaces)
                     {
-                        derivedTypes.Add(type);
+                        if (!result.TryGetValue(iface, out var list))
+                        {
+                            list = new List<Type>();
+                            result[iface] = list;
+                        }
+
+                        list.Add(type);
                     }
                 }
             }
 
-            return derivedTypes.ToArray();
+            return result;
         }
 
         /// <summary>
@@ -378,28 +435,53 @@ namespace Remedy.Framework
             }
         }
 
+        private static readonly Lazy<List<Assembly>> _cachedAssemblies = new(BuildAssemblyCache);
+
         public static IEnumerable<Assembly> GetAssemblies()
         {
-            var list = new List<string>();
+            return _cachedAssemblies.Value;
+        }
+
+        private static List<Assembly> BuildAssemblyCache()
+        {
+            var result = new List<Assembly>();
+            var visited = new HashSet<string>();
+
             var stack = new Stack<Assembly>();
 
-            stack.Push(Assembly.GetEntryAssembly());
+            var entry = Assembly.GetEntryAssembly();
+            if (entry != null)
+                stack.Push(entry);
 
-            do
+            while (stack.Count > 0)
             {
                 var asm = stack.Pop();
+                if (asm == null)
+                    continue;
 
-                yield return asm;
+                if (!visited.Add(asm.FullName))
+                    continue;
+
+                result.Add(asm);
 
                 foreach (var reference in asm.GetReferencedAssemblies())
-                    if (!list.Contains(reference.FullName))
-                    {
-                        stack.Push(Assembly.Load(reference));
-                        list.Add(reference.FullName);
-                    }
+                {
+                    if (visited.Contains(reference.FullName))
+                        continue;
 
+                    try
+                    {
+                        var loaded = Assembly.Load(reference);
+                        stack.Push(loaded);
+                    }
+                    catch
+                    {
+                        // Ignore load failures safely.
+                    }
+                }
             }
-            while (stack.Count > 0);
+
+            return result;
         }
 
         public static Type[] GetNestedTypesOfBaseType<T>(this object instance)
@@ -419,6 +501,53 @@ namespace Remedy.Framework
             }
 
             return classes.ToArray();
+        }
+
+        public static Type GetElementType(this object parent)
+        {
+            var parentType = parent.GetType();
+            if (parentType.IsArray)
+                return parentType.GetElementType();
+
+            var iListType = parentType.GetInterfaces()
+                .FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IList<>));
+
+            return iListType?.GetGenericArguments()[0] ?? typeof(object);
+        }
+
+
+        /// <summary>
+        /// Gets all public and non-public instance fields and properties of a type as FieldOrProperty wrappers.
+        /// </summary>
+        public static IEnumerable<FieldOrPropertyInfo> GetFieldsAndProperties(this Type type,
+            BindingFlags flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
+        {
+            // Get all fields
+            foreach (var field in type.GetFields(flags))
+            {
+                yield return new FieldOrPropertyInfo(field);
+            }
+
+            // Get all properties
+            foreach (var property in type.GetProperties(flags))
+            {
+                yield return new FieldOrPropertyInfo(property);
+            }
+        }
+
+        /// <summary>
+        /// Optionally, get a single FieldOrProperty by name.
+        /// </summary>
+        public static FieldOrPropertyInfo GetFieldOrProperty(this Type type, string name,
+            BindingFlags flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
+        {
+            var field = type.GetField(name, flags);
+            if (field != null) return new FieldOrPropertyInfo(field);
+
+            var property = type.GetProperty(name, flags);
+            if (property != null) return new FieldOrPropertyInfo(property);
+
+            throw new ArgumentException($"No field or property named '{name}' found on type {type.FullName}");
         }
     }
 

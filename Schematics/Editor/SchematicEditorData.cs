@@ -4,34 +4,72 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using System.Linq;
-using static ScriptableEventBase;
+using static SignalData;
 using SchematicAssets;
 using UnityEditor;
+using NaughtyAttributes;
+using Remedy.Schematics.Utils;
 
 public class SchematicEditorData : SingletonData<SchematicEditorData>
 {
+    [Tooltip("If enabled, load times of processes of the Editor will be logged in the console")]
+    [SerializeField]
+    internal bool _profileEditor = true;
+    internal static bool Profile => Instance._profileEditor;
+
     [SerializeField]
     internal List<SchematicPrefabData> _prefabData = new();
 
     [SerializeField]
     internal List<SchematicGraph> Graphs;
-    [SerializeField]
-    internal List<SchematicScope> Scopes;
-
+/*    [SerializeField]
+    internal List<SchematicScope> Scopes;*/
+/*
     public List<IOBase> IOBases = new();
 
-    public SerializableDictionary<IOBase, List<SchematicScope.ScriptableEventReference>> WorkingEventSetDebug;
+    public SerializableDictionary<IOBase, List<SchematicScope.ScriptableEventReference>> WorkingEventSetDebug;*/
 
-    public List<ScriptableEventReference> ScriptableEventReferenceDebug = new();
+    public List<SignalHandler> ScriptableEventReferenceDebug = new();
 
     /// <summary>
     /// A cache storing the Invoke Nodes of the Schematic with the ScriptableEventReference that their Event is from so they can be properly updated.
     /// </summary>
-    public SerializableDictionary<SchematicScope.ScriptableEventReference, List<InvokeScriptableEvent>> _invokeNodesToReferenceCache = new();
+    public SerializableDictionary<SignalHandler, List<SendSignalNode>> _invokeNodesToReferenceCache = new();
     /// <summary>
     /// A cache storing the OnInvoke Nodes of the Schematic with the ScriptableEventReference that their Event is from so they can be properly updated.
     /// </summary>
-    public SerializableDictionary<SchematicScope.ScriptableEventReference, List<OnScriptableEventInvoked>> _onInvokeNodesToReferenceCache = new();
+    public SerializableDictionary<SignalHandler, List<OnSignalReceivedNode>> _onInvokeNodesToReferenceCache = new();
+
+    [SerializeField]
+    private List<EditorTypeSetting> _editorTypeSettings = new();
+    internal static List<EditorTypeSetting> EditorTypeSettings => Instance._editorTypeSettings;
+
+    [Serializable]
+    public class EditorTypeSetting
+    {
+        [HideInInspector]
+        public string TypeName;
+        [Dropdown("GetTypes")]
+        public string Type;
+        public Color ColorInEditor;
+        private static DropdownList<string> _cachedList = new();
+
+        public DropdownList<string> GetTypes()
+        {
+            if(_cachedList.Count() == 0)
+            {
+                var types = Union.TypeLookup.Values;
+                
+                foreach(var type in types)
+                {
+                    if (type == null) continue;
+                    _cachedList.Add(type.Name, type.AssemblyQualifiedName);
+                }
+            }
+
+            return _cachedList;
+        }
+    }
 
     /// <summary>
     /// Adds Schematic Data for the given item
@@ -85,7 +123,7 @@ public class SchematicEditorData : SingletonData<SchematicEditorData>
     public class SchematicPrefabData
     {
         public string GlobalID;
-        public SchematicScope Scope;
+        //public SchematicScope Scope;
         public List<SchematicGraph> Graphs = new();
 
         public SchematicPrefabData(string globalID)

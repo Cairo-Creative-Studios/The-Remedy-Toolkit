@@ -13,6 +13,10 @@ namespace Remedy.Framework
         /// A cache of components attached to game objects, indexed by type.
         /// </summary>
         private static Dictionary<GameObject, Dictionary<Type, Component>> _componentCache = new();
+        /// <summary>
+        /// A cache of components attached to parents of gameObjects, indexed by type
+        /// </summary>
+        private static Dictionary<GameObject, Dictionary<Type, Component>> _parentComponentCache = new();
 
         private static Dictionary<Type, SingletonBase> _singletons = new();
         public static Dictionary<Type, SingletonBase> Singletons => new(_singletons);
@@ -45,6 +49,42 @@ namespace Remedy.Framework
             var component = obj.GetComponent<T>();
             componentDictionary[typeof(T)] = component;
             return component;
+        }
+
+        /// <summary>
+        /// Attempts to get a Component from the Cache, or searches parents iteratively
+        /// until the first instance is found. The result is cached for later.
+        /// </summary>
+        public static T GetCachedComponentInParents<T>(GameObject obj) where T : Component
+        {
+            if (!_parentComponentCache.TryGetValue(obj, out var componentDictionary))
+            {
+                componentDictionary = new Dictionary<Type, Component>();
+                _parentComponentCache[obj] = componentDictionary;
+            }
+
+            if (componentDictionary.TryGetValue(typeof(T), out var cached))
+            {
+                return (T)cached;
+            }
+
+            Transform current = obj.transform;
+            T found = null;
+
+            // Iterative upward traversal
+            while (current != null)
+            {
+                found = current.GetComponent<T>();
+                if (found != null)
+                    break;
+
+                current = current.parent;
+            }
+
+            // Cache even if null to prevent repeated traversal
+            componentDictionary[typeof(T)] = found;
+
+            return found;
         }
     }
 }

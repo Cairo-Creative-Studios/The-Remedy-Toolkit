@@ -23,4 +23,6 @@ public class CharacterMotionProperties : ScriptableObjectWithID<CharacterMotionP
     public float SpringDamper = 30f;
     public float SpringMaxForce = 10;
     public float SpringEpsilon = 1f;
+
+    public float MinDistanceFromGround = 0.25f;
 }

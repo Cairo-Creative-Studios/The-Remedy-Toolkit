@@ -16,18 +16,18 @@ namespace Remedy.Damagables
         /*[Layout("Settings", ELayout.Tab | ELayout.Collapse)]
         [Layout("Settings/Events", ELayout.Tab | ELayout.Collapse)]
         [LayoutStart("./Output")]*/
-        public ScriptableEvent OnDamageBegin;
-        public ScriptableEvent OnHealBegin;
-        public ScriptableEvent OnHealInstigation;
-        public ScriptableEvent OnDamageContinued;
-        public ScriptableEvent OnHealContinued;
-        public ScriptableEvent OnDamageFinish;
-        public ScriptableEvent OnHealFinish;
+        public SignalData OnDamageBegin;
+        public SignalData OnHealBegin;
+        public SignalData OnHealInstigation;
+        public SignalData OnDamageContinued;
+        public SignalData OnHealContinued;
+        public SignalData OnDamageFinish;
+        public SignalData OnHealFinish;
         [Tooltip("Not handled by the Damageable. This functionality must be uniquely implemented for each object that uses this Component. The given value is the direction from the instigation position to this object.")]
         public UnityEvent<Vector3> OnKnockback;
-        public ScriptableEvent OnDeath;
-        public ScriptableEvent OnFullHealth;
-        public ScriptableEvent OnRevive;
+        public SignalData OnDeath;
+        public SignalData OnFullHealth;
+        public SignalData OnRevive;
 
         /*[Layout("Settings", ELayout.Tab | ELayout.Collapse)]
         [Layout("Settings/Component", ELayout.Tab | ELayout.Collapse)]
@@ -54,7 +54,7 @@ namespace Remedy.Damagables
         /// <param name="instigator"></param>
         public virtual void Damage(DamageInstigation instigation)
         {
-            OnDamageBegin?.Invoke(default);
+            OnDamageBegin?.FinalInvoke(default);
             OnKnockback?.Invoke(transform.position - instigation.Position);
 
             if (!DamageInstigationData.Lookup.TryGetValue(instigation.DataID, out var data))
@@ -70,12 +70,12 @@ namespace Remedy.Damagables
             else
             {
                 _health -= data.Amount;
-                OnDamageFinish?.Invoke(default);
+                OnDamageFinish?.FinalInvoke(default);
 
                 if (_health <= 0f && _isAlive)
                 {
                     _isAlive = false;
-                    OnDeath?.Invoke(default);
+                    OnDeath?.FinalInvoke(default);
                 }
             }
         }
@@ -86,7 +86,7 @@ namespace Remedy.Damagables
         /// <param name="instigator"></param>
         public virtual void Heal(DamageInstigation instigation)
         {
-            OnHealBegin?.Invoke(default);
+            OnHealBegin?.FinalInvoke(default);
 
             if (!DamageInstigationData.Lookup.TryGetValue(instigation.DataID, out var data))
             {
@@ -101,10 +101,10 @@ namespace Remedy.Damagables
             else
             {
                 _health = Mathf.Min(_health + data.Amount, _maxHealth);
-                OnHealInstigation?.Invoke(default);
+                OnHealInstigation?.FinalInvoke(default);
 
                 if (_health == MaxHealth)
-                    OnFullHealth?.Invoke(default);
+                    OnFullHealth?.FinalInvoke(default);
             }
         }
 
@@ -121,14 +121,14 @@ namespace Remedy.Damagables
             for (int i = 0; i < steps; i++)
             {
                 _health -= damagePerStep;
-                OnDamageContinued?.Invoke(default);
+                OnDamageContinued?.FinalInvoke(default);
 
                 if (_health <= 0f && _isAlive)
                 {
                     _health = 0f;
                     _isAlive = false;
-                    OnDamageFinish?.Invoke(default);
-                    OnDeath?.Invoke(default);
+                    OnDamageFinish?.FinalInvoke(default);
+                    OnDeath?.FinalInvoke(default);
                     break;
                 }
 
@@ -152,15 +152,15 @@ namespace Remedy.Damagables
 
                 if (_health == _maxHealth)
                 {
-                    OnHealFinish?.Invoke(default);
-                    OnFullHealth?.Invoke(default);
+                    OnHealFinish?.FinalInvoke(default);
+                    OnFullHealth?.FinalInvoke(default);
                 }
 
-                OnHealContinued?.Invoke(default);
+                OnHealContinued?.FinalInvoke(default);
                 await UniTask.WaitForFixedUpdate();
             }
 
-            OnHealFinish?.Invoke(default);
+            OnHealFinish?.FinalInvoke(default);
         }
 
         /// <summary>
@@ -170,7 +170,7 @@ namespace Remedy.Damagables
         public void Kill(DamageInstigation instigation)
         {
             _isAlive = false;
-            OnDeath?.Invoke(default);
+            OnDeath?.FinalInvoke(default);
         }
 
 
@@ -182,7 +182,7 @@ namespace Remedy.Damagables
         {
             _isAlive = true;
             _health = _maxHealth;
-            OnRevive?.Invoke(default);
+            OnRevive?.FinalInvoke(default);
         }
     }
 }

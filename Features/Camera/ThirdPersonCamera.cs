@@ -1,5 +1,4 @@
 using UnityEngine;
-//using SaintsField.Playa;
 
 namespace Remedy.Cameras
 {
@@ -7,14 +6,9 @@ namespace Remedy.Cameras
     [ExecuteAlways]
     public class ThirdPersonCamera : CameraOperator
     {
+        public SignalData AimPosition;
 
-        public ScriptableEventVector3.Output AimPosition;
-
-        /*[Layout("Settings", ELayout.Tab | ELayout.Collapse)]
-        [Layout("Settings/Component", ELayout.Tab | ELayout.Collapse)]
-        [LayoutStart("./Follow")]*/
         [Tooltip("The Object to Follow.")]
-        public Transform Follow;
         public Vector3 FollowOffset;
         public float HorizontalFollowSpeed = 10f;
         public float VerticalFollowSpeed = 3f;
@@ -24,16 +18,10 @@ namespace Remedy.Cameras
         [Tooltip("Max distance from the Followed Object.")]
         public float MaxDistance = 5f;
 
-        /*[Layout("Settings", ELayout.Tab | ELayout.Collapse)]
-        [Layout("Settings/Component", ELayout.Tab | ELayout.Collapse)]
-        [LayoutStart("./Auto Level")]*/
         public float LevelAngle = 5f;
         public float AutoLevelDelay = 1f;
         public float AutoLevelSpeed = 5f;
 
-        /*[Layout("Settings", ELayout.Tab | ELayout.Collapse)]
-        [Layout("Settings/Component", ELayout.Tab | ELayout.Collapse)]
-        [LayoutStart("./Optimizations")]*/
         [Tooltip("An angular force applied to distance the Camera Rotation away from walls over time.")]
         public float OptimalDistancePush = 1f;
         public float OptimalDistance = 10f;
@@ -50,9 +38,6 @@ namespace Remedy.Cameras
         public float LookupOrientationMaxAngle = 30f;
         public float LookdownOrientationSpeed = 10f;
 
-/*        [Layout("Settings", ELayout.Tab | ELayout.Collapse)]
-        [Layout("Settings/Component", ELayout.Tab | ELayout.Collapse)]
-        [LayoutStart("./Collisions")]*/
         [Tooltip("What is collided with to move the Camera closer to the Player")]
         public LayerMask CollisionLayers;
         public float CollisionReactSpeed = 10f;

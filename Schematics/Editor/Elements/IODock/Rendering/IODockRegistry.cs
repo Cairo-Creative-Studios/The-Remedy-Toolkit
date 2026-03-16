@@ -8,6 +8,7 @@ using Remedy.Framework;
 using UnityEditor;
 using System.IO;
 using Remedy.Schematics;
+using PlasticPipe.PlasticProtocol.Messages;
 
 public static class IODockRegistry
 {
@@ -64,6 +65,11 @@ public static class IODockRegistry
         return _defaultRenderer;
     }
 
+    public static (bool, VisualElement) RenderObjectDock(Type type, SchematicGraphEditorWindow schematicWindow, UnityEngine.Object component, Transform prefabTransform, string specifiedPath = "")
+    {
+        return GetComponentRenderer(type).Render(schematicWindow, component, prefabTransform, specifiedPath);
+    }
+
     /// <summary>
     /// Uses reflection to render each field instance within a target object as defined within the Attributes added to the Fields in that Target's Class.
     /// </summary>
@@ -81,41 +87,17 @@ public static class IODockRegistry
             }
         };
 
-        if(displayObjectName)
-        {
-            var label = new Label(obj.GetType().Name.FormatNicely())
-            {
-                style =
-                {
-                    color = Color.gray7
-                }
-            };
+        List<FieldOrPropertyInfo> ioMembers = new();
 
-            var attr = obj.GetType().GetCustomAttribute<SchematicComponentAttribute>();
-
-            if (attr != null && !string.IsNullOrEmpty(attr.Path))
-            {
-                var parts = attr.Path.Split('/');
-                label.text = parts[parts.Length - 1];
-            }
-
-            container.Add(label);
-        }
-
-        List<MemberWrapper> ioMembers = new();
-
-        foreach(var field in parent.GetType()
-                                    .GetFields(BindingFlags.Public | BindingFlags.Instance))
+        foreach(var field in parent.GetType().GetFields(BindingFlags.Public | BindingFlags.Instance))
         {
             ioMembers.Add(field);
         }
 
-        foreach (var prop in parent.GetType()
-                                    .GetProperties(BindingFlags.Public | BindingFlags.Instance))
+        foreach (var prop in parent.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance))
         {
             ioMembers.Add(prop);
         }
-
 
         bool draw = false;
         foreach (var field in ioMembers)
@@ -129,9 +111,9 @@ public static class IODockRegistry
 
                 if (attr == null)
                 {
-                    if (typeof(ScriptableEventBase).IsAssignableFrom(field.MemberType.DeclaringType))
+                    if (typeof(SignalBase).IsAssignableFrom(field.MemberType))
                     {
-                        (fieldDrawn, element) = RenderElementForField(window, obj, parent, field.GetValue(parent), field, propertyPath, onModified, attr, typeof(EventContainerRenderer));
+                        (fieldDrawn, element) = RenderElementForField(window, obj, parent, field.GetValue(parent), field, propertyPath, onModified, attr, typeof(SignalRenderer));
 
                         container.Add(element);
                         draw = true;
@@ -163,7 +145,7 @@ public static class IODockRegistry
     /// <param name="target"></param>
     /// <param name="field"></param>
     /// <returns></returns>
-    public static (bool, VisualElement) RenderElementForField(SchematicGraphEditorWindow window, UnityEngine.Object obj, object parent, object target, MemberWrapper field, string path, List<Action> onModified, Attribute attr, Type specificRenderer = null)
+    public static (bool, VisualElement) RenderElementForField(SchematicGraphEditorWindow window, UnityEngine.Object obj, object parent, object target, FieldOrPropertyInfo field, string path, List<Action> onModified, Attribute attr, Type specificRenderer = null)
     {
         if(attr != null)
         {

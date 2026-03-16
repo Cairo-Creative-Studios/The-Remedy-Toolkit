@@ -14,62 +14,22 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ShowCursor: 0
   InputMaps:
-  - Name: Player
+  - Name: Move
     Inputs:
     - Name: Move
       Input:
         m_Name: Input
         m_Type: 0
         m_ExpectedControlType: 
-        m_Id: 9e0701dd-12d0-4604-a8cb-0017d77bba0d
+        m_Id: 1210c32f-8ee0-4b70-a70f-9f16ef7ac637
         m_Processors: 
         m_Interactions: 
-        m_SingletonActionBindings:
-        - m_Name: 2D Vector
-          m_Id: 8949135b-0e97-45ae-832b-5b4292b97d28
-          m_Path: 2DVector
-          m_Interactions: 
-          m_Processors: 
-          m_Groups: 
-          m_Action: Input
-          m_Flags: 4
-        - m_Name: up
-          m_Id: 90297a0b-1754-4287-b9aa-70f75024b77d
-          m_Path: <Keyboard>/w
-          m_Interactions: 
-          m_Processors: 
-          m_Groups: 
-          m_Action: Input
-          m_Flags: 8
-        - m_Name: down
-          m_Id: 6fa250fb-b96a-402f-8443-d0af68020625
-          m_Path: <Keyboard>/s
-          m_Interactions: 
-          m_Processors: 
-          m_Groups: 
-          m_Action: Input
-          m_Flags: 8
-        - m_Name: left
-          m_Id: 13ecd3a0-be89-4e88-8be0-0b8e1130715f
-          m_Path: <Keyboard>/a
-          m_Interactions: 
-          m_Processors: 
-          m_Groups: 
-          m_Action: Input
-          m_Flags: 8
-        - m_Name: right
-          m_Id: 045972aa-4dae-4b27-a398-2e16c1a772bb
-          m_Path: <Keyboard>/d
-          m_Interactions: 
-          m_Processors: 
-          m_Groups: 
-          m_Action: Input
-          m_Flags: 8
+        m_SingletonActionBindings: []
         m_Flags: 0
       Output:
         Name: 
         DefaultDirectoryPath: 
-        ID: 67
+        ID: 90
         Events:
         - {fileID: 11400000, guid: 710c7b28ec748794e91c657cd7d98a58, type: 2}
         Channel: 0
@@ -81,25 +41,37 @@ MonoBehaviour:
         m_Name: Input
         m_Type: 0
         m_ExpectedControlType: 
-        m_Id: 454a4572-8c03-428d-b3d8-7e65ffc9d84b
+        m_Id: e89a7e8d-f4a5-4234-8d4a-564ccb5f386a
         m_Processors: 
         m_Interactions: 
-        m_SingletonActionBindings:
-        - m_Name: 
-          m_Id: 8488c9d1-8380-46df-9351-fb43b4ee6579
-          m_Path: <Keyboard>/space
-          m_Interactions: 
-          m_Processors: 
-          m_Groups: 
-          m_Action: Input
-          m_Flags: 0
+        m_SingletonActionBindings: []
         m_Flags: 0
       Output:
         Name: 
         DefaultDirectoryPath: 
-        ID: 68
+        ID: 88
         Events:
         - {fileID: 11400000, guid: 3f0b2e262b66c794eb243a293f1a893b, type: 2}
+        Channel: 0
+        Await:
+          Events: []
+      OneShot: 0
+    - Name: Default text
+      Input:
+        m_Name: Input
+        m_Type: 0
+        m_ExpectedControlType: 
+        m_Id: 10177b96-fa35-46a5-9a62-db5c600db789
+        m_Processors: 
+        m_Interactions: 
+        m_SingletonActionBindings: []
+        m_Flags: 0
+      Output:
+        Name: 
+        DefaultDirectoryPath: 
+        ID: 92
+        Events:
+        - {fileID: 11400000, guid: cb7dca67248007e4bb7031529a1a71d3, type: 2}
         Channel: 0
         Await:
           Events: []
@@ -191,6 +163,34 @@ MonoBehaviour:
         ID: 68
         Events:
         - {fileID: 11400000, guid: 3f0b2e262b66c794eb243a293f1a893b, type: 2}
+        Channel: 0
+        Await:
+          Events: []
+      OneShot: 0
+    - Name: Camera Look
+      Input:
+        m_Name: Input
+        m_Type: 0
+        m_ExpectedControlType: 
+        m_Id: 85e6eacb-b92f-4308-a724-f43bc98c9091
+        m_Processors: 
+        m_Interactions: 
+        m_SingletonActionBindings:
+        - m_Name: 
+          m_Id: a290a37f-07d4-421c-b957-052c346d893f
+          m_Path: <Mouse>/delta
+          m_Interactions: 
+          m_Processors: 
+          m_Groups: 
+          m_Action: Input
+          m_Flags: 0
+        m_Flags: 0
+      Output:
+        Name: 
+        DefaultDirectoryPath: 
+        ID: 857
+        Events:
+        - {fileID: 11400000, guid: cb7dca67248007e4bb7031529a1a71d3, type: 2}
         Channel: 0
         Await:
           Events: []

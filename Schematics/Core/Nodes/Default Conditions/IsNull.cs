@@ -17,14 +17,8 @@ namespace Remedy.Schematics
 
         public override bool Condition()
         {
-            try
-            {
-                return GetInputValue<object>("Value") == null;
-            }
-            catch(Exception e)
-            {
-                return true;
-            }
+            var value = GetInputValue<object>("Value");
+            return value == null;
         }
     }
 }

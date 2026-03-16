@@ -19,15 +19,15 @@ namespace Remedy.Schematics
         [Output("Instanced Object")]
         public GameObject InstancedObject;
         
-        protected override void OnTrigger(bool awaiting = false)
+        protected override void OnTrigger(GameObject instance, bool awaiting = false)
         {
             if(awaiting)
             {
                 //await UniTask.WaitForEndOfFrame();
 
-                InitPosition = GetInputValue<Vector3>("Position");
-                Rotation = GetInputValue<Vector3>("Rotation");
-                Prefab = GetInputValue<GameObject>("Prefab");
+                InitPosition = GetInputValue<Vector3>("Position", InitPosition);
+                Rotation = GetInputValue<Vector3>("Rotation", Rotation);
+                Prefab = GetInputValue<GameObject>("Prefab", Prefab);
 
                 SetOutputValue(nameof(InstancedObject), ObjectManager.Instantiate(Prefab, InitPosition, Quaternion.Euler(Rotation)));
 

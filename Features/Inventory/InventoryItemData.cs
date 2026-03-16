@@ -10,9 +10,9 @@ namespace Remedy.Inventories
     public class InventoryItemData : ScriptableObjectWithID<InventoryItemData>
     {
         [Tooltip("Invoked when the Item is selected by an Inventory.")]
-        public ScriptableEventBase.Output OnSelected;
+        public SignalData OnSelected;
         [Tooltip("Invoked when the Item is de-selected by an Inventory.")]
-        public ScriptableEventBase.Output OnDeselected;
+        public SignalData OnDeselected;
 
         [Tooltip("If displayed in the world, this Prefab will be created for it.")]
         public GameObject Prefab;

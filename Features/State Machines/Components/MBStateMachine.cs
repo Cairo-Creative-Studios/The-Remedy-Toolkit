@@ -11,9 +11,9 @@ namespace Remedy.StateMachines
     public class MBStateMachine : MonoBehaviour
     {
         [Tooltip("An optional 'Pause' Input that disables all states while True. If any of the Boolean Events in this list are true, all State Machine managed Behaviours are disabled.")]
-        public ScriptableEventBoolean.Input Pause;
+        public SignalData Pause;
 
-        [IdentityListRenderer(identifierType: EventListIdentifierType.Name, identifierField: "Name", depth: 0, foldoutTitle: "States", itemName: "State")]
+        [IdentityListRenderer(identifierType: ListIdentifierType.Name, identifierField: "Name", depth: 0, foldoutTitle: "States", itemLabel: "State")]
         [SerializeField]
         public MBState[] States = new MBState[0];
         [SerializeField]
@@ -88,13 +88,9 @@ namespace Remedy.StateMachines
                 if (val) _isPaused = true;
                 else
                 {
-                    foreach (var subEvent in Pause.Subscriptions)
+                    if (Pause.Parameters[0].GetValue<bool>())
                     {
-                        if (subEvent.CurrentValue)
-                        {
-                            _isPaused = true;
-                            break;
-                        }
+                        _isPaused = true;
                     }
                 }
 
@@ -130,7 +126,7 @@ namespace Remedy.StateMachines
         {
             foreach (var state in States)
             {
-                state.Transition.UnSubscribe(this);
+                state.Transition.Unsubscribe(this);
             }
         } 
           
@@ -235,23 +231,23 @@ namespace Remedy.StateMachines
         {
             public string Name;
             public MBStateMachine StateMachine;
-            public ScriptableEventBase.Input Transition = new();
-            public ScriptableEventBoolean.Output ActiveState = new();
+            public SignalData Transition;
+            public SignalData ActiveState;
 
-            [IdentityListRenderer(identifierType: EventListIdentifierType.Dropdown,
+            [IdentityListRenderer(identifierType: ListIdentifierType.Dropdown,
                                   identifierField: "MonoBehaviour",
                                   depth: 1,
                                   options: "./" + nameof(CachedMonoBehaviours),
                                   foldoutTitle: "MonoBehaviours to Enable",
-                                  itemName: "MonoBehaviour")]
+                                  itemLabel: "MonoBehaviour")]
             public MBStateHandle[] Enabled = new MBStateHandle[0];
 
-            [IdentityListRenderer(identifierType: EventListIdentifierType.Dropdown,
+            [IdentityListRenderer(identifierType: ListIdentifierType.Dropdown,
                                   identifierField: "MonoBehaviour",
                                   depth: 1,
                                   options: "./" + nameof(CachedMonoBehaviours),
                                   foldoutTitle: "MonoBehaviours to Disable",
-                                  itemName: "MonoBehaviour")]
+                                  itemLabel: "MonoBehaviour")]
             public MBStateHandle[] Disabled = new MBStateHandle[0];
         }
 
@@ -268,14 +264,7 @@ namespace Remedy.StateMachines
             {
                 get
                 {
-                    try
-                    {
-                        return _cachedComponent ??= (MonoBehaviour)StateMachine.GetComponent(Type.GetType(MonoBehaviour));
-                    }
-                    catch(Exception e)
-                    {
-                        return null;
-                    }
+                    return _cachedComponent ??= (MonoBehaviour)StateMachine.GetComponent(Type.GetType(MonoBehaviour));
                 }
             }
 

@@ -7,9 +7,10 @@ namespace Remedy.Cameras
     [ExecuteAlways]
     public class ShoulderCamera : CameraOperator
     {
-        public ScriptableEventVector3.Output ActualLookDirection;
-        public ScriptableEventVector3.Output GoalLookDirection;
-        public ScriptableEventVector3.Output AimPosition;
+        [Parameter("Direction", typeof(Vector3))]
+        public SignalData ActualLookDirection;
+        public SignalData GoalLookDirection;
+        public SignalData AimPosition;
 
         public enum Shoulders
         {
@@ -27,8 +28,6 @@ namespace Remedy.Cameras
         public float ShoulderSwitchSpeed = 10f;
         public bool AutoSwitch = true;
         public float SwitchDistance = 2f;
-        [Tooltip("The Object to Follow.")]
-        public Transform Follow;
         public Vector3 FollowOffset;
         public float HorizontalFollowSpeed = 10f;
         public float VerticalFollowSpeed = 3f;
